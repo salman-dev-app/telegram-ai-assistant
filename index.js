@@ -51,8 +51,9 @@ bot.command('status', isAdmin, AdminController.handleStatus);
 bot.command('view_memory', isAdmin, AdminController.handleViewMemory);
 bot.command('list_products', isAdmin, AdminController.handleListProducts);
 
-// Language selection callback
+// Callbacks
 bot.action(/^lang_/, MessageController.handleLanguageSelection);
+bot.action(/^status_/, isAdmin, AdminController.handleStatusCallback);
 
 // Message handling with rate limiting
 bot.on('text', rateLimitMiddleware, MessageController.handleMessage);

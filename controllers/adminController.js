@@ -1,3 +1,4 @@
+import { Markup } from 'telegraf';
 import { BrandMemory } from '../database/models/BrandMemory.js';
 import { Product } from '../database/models/Product.js';
 import { logger } from '../utils/logger.js';
@@ -123,22 +124,37 @@ export class AdminController {
 
   static async handleStatus(ctx) {
     try {
-      const text = ctx.message.text.replace('/status', '').trim().toLowerCase();
-      
-      if (!text || !['online', 'busy', 'away'].includes(text)) {
-        return ctx.reply(
-          '🚦 *PRESENCE CONTROL*\n' +
-          '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-          'Usage: `/status [online|busy|away]`\n\n' +
-          '🟢 *Online:* Bot is silent. Salman handles all.\n' +
-          '🟡 *Busy:* AI handles queries. Salman is busy.\n' +
-          '🔴 *Away:* AI handles all. Salman is offline.',
-          { parse_mode: 'Markdown' }
-        );
-      }
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback('🟢 Online', 'status_online'),
+          Markup.button.callback('🟡 Busy', 'status_busy'),
+          Markup.button.callback('🔴 Away', 'status_away')
+        ]
+      ]);
 
+      return ctx.reply(
+        '🚦 *PRESENCE CONTROL CENTER*\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+        'Select your current status below:\n\n' +
+        '🟢 *Online:* Bot is silent. You handle all.\n' +
+        '🟡 *Busy:* AI handles queries. You are busy.\n' +
+        '🔴 *Away:* AI handles all. You are offline.',
+        {
+          parse_mode: 'Markdown',
+          ...keyboard
+        }
+      );
+    } catch (error) {
+      logger.error('Error in handleStatus:', error);
+      ctx.reply('❌ *Error:* Failed to open status control.');
+    }
+  }
+
+  static async handleStatusCallback(ctx) {
+    try {
+      const status = ctx.callbackQuery.data.replace('status_', '');
       const memory = await BrandMemory.getMemory();
-      memory.status = text;
+      memory.status = status;
       await memory.save();
 
       const statusEmoji = {
@@ -147,12 +163,24 @@ export class AdminController {
         away: '🔴'
       };
 
-      logger.info(`Status updated by admin: ${text}`);
-      ctx.reply(`${statusEmoji[text]} *Presence Updated:* **${text.toUpperCase()}**`, { parse_mode: 'Markdown' });
+      const statusText = {
+        online: 'ONLINE (Bot Silent)',
+        busy: 'BUSY (AI Assisting)',
+        away: 'AWAY (AI Handling All)'
+      };
+
+      await ctx.editMessageText(
+        `✅ *Presence Updated Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `${statusEmoji[status]} *New Status:* **${statusText[status]}**`,
+        { parse_mode: 'Markdown' }
+      );
+
+      await ctx.answerCbQuery(`Status set to ${status.toUpperCase()}`);
+      logger.info(`Status updated via button: ${status}`);
 
     } catch (error) {
-      logger.error('Error in handleStatus:', error);
-      ctx.reply('❌ *Error:* Failed to update status. Please try again.');
+      logger.error('Error in handleStatusCallback:', error);
+      ctx.answerCbQuery('Error updating status');
     }
   }
 
@@ -161,9 +189,17 @@ export class AdminController {
       const memory = await BrandMemory.getMemory();
       const products = await Product.find({ isActive: true });
 
+      const statusEmoji = {
+        online: '🟢',
+        busy: '🟡',
+        away: '🔴'
+      };
+
       const message = `
 📊 *SYSTEM STATS*
 ━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚦 *Current Status:* ${statusEmoji[memory.status]} **${memory.status.toUpperCase()}**
 
 👤 *Brand Identity:*
 ${memory.getFormattedMemory()}
