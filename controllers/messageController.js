@@ -2,10 +2,10 @@ import { Markup } from 'telegraf';
 import { UserService } from '../services/userService.js';
 import { BrandMemory } from '../database/models/BrandMemory.js';
 import { Product } from '../database/models/Product.js';
-import { OpenRouterAI } from '../ai/openrouter.js';
+import { GeminiAI } from '../ai/gemini.js';
 import { logger } from '../utils/logger.js';
 
-const ai = new OpenRouterAI();
+const ai = new GeminiAI();
 
 export class MessageController {
   static async handleMessage(ctx) {

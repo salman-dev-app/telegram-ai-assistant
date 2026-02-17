@@ -91,23 +91,33 @@ const shutdown = (signal) => {
 process.once('SIGINT', () => shutdown('SIGINT'));
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 
-// Start bot with deleteWebhook to fix 409 Conflict
+// Start bot with robust error handling for 409 Conflict
 const startBot = async () => {
   try {
-    // Clear any existing webhooks or polling instances
-    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+    logger.info('Starting bot initialization...');
     
+    // 1. Clear any existing webhooks
+    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+    logger.info('Webhook cleared.');
+
+    // 2. Small delay to allow Telegram to process the deletion
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // 3. Launch the bot
     await bot.launch();
+    
     logger.info('🤖 Bot started successfully!');
     logger.info(`📋 Admin ID: ${config.telegram.adminId}`);
     logger.info('✅ Ready to receive messages');
   } catch (error) {
     logger.error('Failed to start bot:', error);
-    // If it's a 409, we might want to retry after a short delay
-    if (error.code === 409) {
-      logger.info('Retrying bot launch in 5 seconds...');
-      setTimeout(startBot, 5000);
+    
+    // If it's a 409 Conflict, it means another instance is still running
+    if (error.code === 409 || error.message.includes('409')) {
+      logger.warn('409 Conflict detected. Retrying in 10 seconds...');
+      setTimeout(startBot, 10000);
     } else {
+      logger.error('Critical error during startup. Exiting...');
       process.exit(1);
     }
   }
