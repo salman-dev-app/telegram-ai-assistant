@@ -2,10 +2,10 @@ import { Markup } from 'telegraf';
 import { UserService } from '../services/userService.js';
 import { BrandMemory } from '../database/models/BrandMemory.js';
 import { Product } from '../database/models/Product.js';
-import { GeminiAI } from '../ai/gemini.js';
+import { GroqAI } from '../ai/groq.js';
 import { logger } from '../utils/logger.js';
 
-const ai = new GeminiAI();
+const ai = new GroqAI();
 
 export class MessageController {
   static async handleMessage(ctx) {
