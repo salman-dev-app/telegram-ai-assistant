@@ -9,15 +9,16 @@ export class AdminController {
       
       if (!text) {
         return ctx.reply(
-          '📝 *Update Brand Memory*\n\n' +
+          '📝 *UPDATE BRAND MEMORY*\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
           'Usage: `/update_memory [field] [value]`\n\n' +
-          'Available fields:\n' +
+          '🔹 *Available Fields:*\n' +
           '• `about` - About Salman Dev\n' +
-          '• `services` - Services offered (comma-separated)\n' +
+          '• `services` - Services (comma-separated)\n' +
           '• `offers` - Current offers\n' +
           '• `availability` - Availability status\n' +
           '• `notes` - Custom notes\n\n' +
-          'Example:\n' +
+          '💡 *Example:*\n' +
           '`/update_memory about Salman Dev is a full-stack developer specializing in AI solutions`',
           { parse_mode: 'Markdown' }
         );
@@ -31,7 +32,7 @@ export class AdminController {
       const value = parts.slice(1).join(' ');
 
       if (!value) {
-        return ctx.reply('❌ Please provide a value for the field.');
+        return ctx.reply('❌ *Error:* Please provide a value for the field.');
       }
 
       switch (field) {
@@ -51,18 +52,18 @@ export class AdminController {
           memory.customNotes = value;
           break;
         default:
-          return ctx.reply('❌ Invalid field. Use: about, services, offers, availability, or notes');
+          return ctx.reply('❌ *Error:* Invalid field. Use: about, services, offers, availability, or notes');
       }
 
       memory.lastUpdated = Date.now();
       await memory.save();
 
       logger.info(`Brand memory updated by admin: ${field}`);
-      ctx.reply(`✅ Brand memory updated successfully!\n\nField: ${field}\nValue: ${value}`);
+      ctx.reply(`✅ *Memory Updated Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n🔹 *Field:* ${field}\n🔹 *Value:* ${value}`, { parse_mode: 'Markdown' });
 
     } catch (error) {
       logger.error('Error in handleUpdateMemory:', error);
-      ctx.reply('❌ Failed to update memory. Please try again.');
+      ctx.reply('❌ *Error:* Failed to update memory. Please try again.');
     }
   }
 
@@ -72,11 +73,12 @@ export class AdminController {
       
       if (!text) {
         return ctx.reply(
-          '🛍️ *Add Product*\n\n' +
+          '🛍️ *ADD NEW PRODUCT*\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
           'Usage: `/add_product [name] | [description] | [price] | [features] | [demo_url]`\n\n' +
-          'Example:\n' +
+          '💡 *Example:*\n' +
           '`/add_product AI Chatbot | Custom AI assistant for businesses | $500 | 24/7 support, Multi-language, Custom training | https://demo.example.com`\n\n' +
-          'Note: Features should be comma-separated. Demo URL is optional.',
+          '⚠️ *Note:* Features should be comma-separated. Demo URL is optional.',
           { parse_mode: 'Markdown' }
         );
       }
@@ -84,7 +86,7 @@ export class AdminController {
       const parts = text.split('|').map(p => p.trim());
       
       if (parts.length < 3) {
-        return ctx.reply('❌ Invalid format. Please provide at least: name | description | price');
+        return ctx.reply('❌ *Error:* Invalid format. Please provide at least: name | description | price');
       }
 
       const [name, description, price, featuresStr, demoUrl] = parts;
@@ -104,18 +106,18 @@ export class AdminController {
       logger.info(`Product added by admin: ${name}`);
       
       ctx.reply(
-        `✅ Product added successfully!\n\n` +
+        `✅ *Product Added Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `📦 *${product.name}*\n` +
-        `💰 ${product.price}\n` +
-        `📝 ${product.description}\n` +
-        `${features.length > 0 ? `✨ Features: ${features.join(', ')}\n` : ''}` +
-        `${demoUrl ? `🔗 Demo: ${demoUrl}` : ''}`,
+        `💰 *Price:* ${product.price}\n` +
+        `📝 *Description:* ${product.description}\n` +
+        `${features.length > 0 ? `✨ *Features:* ${features.join(', ')}\n` : ''}` +
+        `${demoUrl ? `🔗 *Demo:* ${demoUrl}` : ''}`,
         { parse_mode: 'Markdown' }
       );
 
     } catch (error) {
       logger.error('Error in handleAddProduct:', error);
-      ctx.reply('❌ Failed to add product. Please try again.');
+      ctx.reply('❌ *Error:* Failed to add product. Please try again.');
     }
   }
 
@@ -125,7 +127,8 @@ export class AdminController {
       
       if (!text || !['online', 'busy', 'away'].includes(text)) {
         return ctx.reply(
-          '🔄 *Update Status*\n\n' +
+          '🚦 *UPDATE AVAILABILITY STATUS*\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
           'Usage: `/status [online|busy|away]`\n\n' +
           'Current status will affect how the bot responds to users.',
           { parse_mode: 'Markdown' }
@@ -143,11 +146,11 @@ export class AdminController {
       };
 
       logger.info(`Status updated by admin: ${text}`);
-      ctx.reply(`${statusEmoji[text]} Status updated to: *${text}*`, { parse_mode: 'Markdown' });
+      ctx.reply(`${statusEmoji[text]} *Status Updated:* **${text.toUpperCase()}**`, { parse_mode: 'Markdown' });
 
     } catch (error) {
       logger.error('Error in handleStatus:', error);
-      ctx.reply('❌ Failed to update status. Please try again.');
+      ctx.reply('❌ *Error:* Failed to update status. Please try again.');
     }
   }
 
@@ -157,21 +160,24 @@ export class AdminController {
       const products = await Product.find({ isActive: true });
 
       const message = `
-📊 *Current Brand Memory*
+📊 *SYSTEM OVERVIEW*
+━━━━━━━━━━━━━━━━━━━━━━━━
 
+👤 *Brand Profile:*
 ${memory.getFormattedMemory()}
 
-📦 *Products* (${products.length}):
+📦 *Active Products:* (${products.length})
 ${products.map(p => `• ${p.name} - ${p.price}`).join('\n') || 'No products added yet'}
 
-Last Updated: ${memory.lastUpdated.toLocaleString()}
+━━━━━━━━━━━━━━━━━━━━━━━━
+🕒 *Last Updated:* ${memory.lastUpdated.toLocaleString()}
       `.trim();
 
       ctx.reply(message, { parse_mode: 'Markdown' });
 
     } catch (error) {
       logger.error('Error in handleViewMemory:', error);
-      ctx.reply('❌ Failed to retrieve memory. Please try again.');
+      ctx.reply('❌ *Error:* Failed to retrieve memory. Please try again.');
     }
   }
 
@@ -180,21 +186,21 @@ Last Updated: ${memory.lastUpdated.toLocaleString()}
       const products = await Product.find({ isActive: true });
 
       if (products.length === 0) {
-        return ctx.reply('📦 No products available.');
+        return ctx.reply('📦 *No products available.*');
       }
 
       const message = products.map((p, i) => 
-        `${i + 1}. *${p.name}* - ${p.price}\n` +
-        `   ${p.description}\n` +
-        `   Views: ${p.viewCount}\n` +
-        `   ID: \`${p._id}\``
+        `${i + 1}. 📦 *${p.name}* - ${p.price}\n` +
+        `   📝 ${p.description}\n` +
+        `   👁️ Views: ${p.viewCount}\n` +
+        `   🆔 ID: \`${p._id}\``
       ).join('\n\n');
 
-      ctx.reply(`📦 *Active Products*\n\n${message}`, { parse_mode: 'Markdown' });
+      ctx.reply(`📜 *PRODUCT CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${message}`, { parse_mode: 'Markdown' });
 
     } catch (error) {
       logger.error('Error in handleListProducts:', error);
-      ctx.reply('❌ Failed to retrieve products. Please try again.');
+      ctx.reply('❌ *Error:* Failed to retrieve products. Please try again.');
     }
   }
 }

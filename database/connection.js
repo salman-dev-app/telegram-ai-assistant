@@ -4,10 +4,8 @@ import { logger } from '../utils/logger.js';
 
 export const connectDatabase = async () => {
   try {
-    await mongoose.connect(config.mongodb.uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    // Removed deprecated options: useNewUrlParser and useUnifiedTopology
+    await mongoose.connect(config.mongodb.uri);
     logger.info('✅ MongoDB connected successfully');
   } catch (error) {
     logger.error('❌ MongoDB connection failed:', error);

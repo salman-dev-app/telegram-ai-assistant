@@ -70,17 +70,20 @@ export class MessageController {
     try {
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback('🇧🇩 Bangla', 'lang_bangla'),
-          Markup.button.callback('🇮🇳 Hindi', 'lang_hindi'),
+          Markup.button.callback('🇧🇩 বাংলা', 'lang_bangla'),
+          Markup.button.callback('🇮🇳 हिन्दी', 'lang_hindi'),
           Markup.button.callback('🇬🇧 English', 'lang_english')
         ]
       ]);
 
       await ctx.reply(
-        '👋 Welcome! Please choose your preferred language:\n' +
-        'স্বাগতম! আপনার পছন্দের ভাষা নির্বাচন করুন:\n' +
-        'स्वागत है! कृपया अपनी पसंदीदा भाषा चुनें:',
+        '✨ *Welcome to Salman Dev Assistant* ✨\n\n' +
+        'Please select your preferred language to continue:\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+        '👋 স্বাগতম! আপনার ভাষা নির্বাচন করুন\n' +
+        '👋 स्वागत है! अपनी भाषा चुनें',
         {
+          parse_mode: 'Markdown',
           ...keyboard,
           reply_to_message_id: ctx.message.message_id
         }
@@ -108,9 +111,9 @@ export class MessageController {
       await UserService.setUserLanguage(userId, language);
 
       const confirmMessages = {
-        bangla: '✅ ভাষা সেট করা হয়েছে: বাংলা',
-        hindi: '✅ भाषा सेट की गई: हिंदी',
-        english: '✅ Language set: English'
+        bangla: '✅ *ভাষা সেট করা হয়েছে:* বাংলা\n\nএখন আমি আপনাকে সাহায্য করতে প্রস্তুত! 🚀',
+        hindi: '✅ *भाषा सेट की गई:* हिंदी\n\nअब मैं आपकी सहायता के लिए तैयार हूँ! 🚀',
+        english: '✅ *Language set:* English\n\nI am now ready to assist you! 🚀'
       };
 
       // Delete the language selection message
@@ -118,6 +121,7 @@ export class MessageController {
       
       // Send confirmation as reply to original message
       await ctx.reply(confirmMessages[language], {
+        parse_mode: 'Markdown',
         reply_to_message_id: ctx.callbackQuery.message.reply_to_message.message_id
       });
 
@@ -147,24 +151,26 @@ export class MessageController {
 
   static async handleStart(ctx) {
     const welcomeMessage = `
-👋 *Welcome to Salman Dev AI Assistant!*
+🚀 *SALMAN DEV AI ASSISTANT* 🚀
+━━━━━━━━━━━━━━━━━━━━━━━━
 
-I'm here to help you learn about Salman Dev's services and products.
+Welcome! I am the official digital assistant for **Salman Dev**. I am here to provide you with instant support and information.
 
-*How I work:*
-• I respond to messages in group chats
-• I can communicate in Bangla, Hindi, and English
-• I'll help answer your questions about services
-• For final confirmations, I'll connect you with Salman Dev
+🌟 *What I Can Do:*
+🔹 Explain our premium services
+🔹 Showcase product demos
+🔹 Answer your business queries
+🔹 Keep you updated while Salman is away
 
-*Admin Commands:*
-• \`/update_memory\` - Update brand information
-• \`/add_product\` - Add new product
-• \`/status\` - Update availability status
-• \`/view_memory\` - View current memory
-• \`/list_products\` - List all products
+🛠 *Admin Control Panel:*
+📝 \`/update_memory\` - Update brand info
+📦 \`/add_product\` - Add new product
+🚦 \`/status\` - Change availability
+📊 \`/view_memory\` - System overview
+📜 \`/list_products\` - Product catalog
 
-Let's get started! 🚀
+━━━━━━━━━━━━━━━━━━━━━━━━
+*Ready to assist you 24/7!*
     `.trim();
 
     ctx.reply(welcomeMessage, { parse_mode: 'Markdown' });
@@ -172,22 +178,24 @@ Let's get started! 🚀
 
   static async handleHelp(ctx) {
     const helpMessage = `
-ℹ️ *Help & Information*
+ℹ️ *HELP & INFORMATION*
+━━━━━━━━━━━━━━━━━━━━━━━━
 
-*For Users:*
-• Simply send a message in the group
-• I'll respond to your questions
-• Choose your language on first interaction
+👤 *For Users:*
+• Simply send a message in the group.
+• I will reply directly to your thread.
+• First-time users will be asked for language.
 
-*For Admin:*
-• \`/update_memory [field] [value]\` - Update brand info
-• \`/add_product [details]\` - Add product
-• \`/status [online|busy|away]\` - Set status
-• \`/view_memory\` - View current settings
-• \`/list_products\` - View all products
+🔑 *For Admin:*
+• \`/update_memory [field] [value]\`
+• \`/add_product [name] | [desc] | [price] | [features] | [demo]\`
+• \`/status [online|busy|away]\`
+• \`/view_memory\`
+• \`/list_products\`
 
-*Need more help?*
-Contact Salman Dev directly for assistance.
+🆘 *Need Human Support?*
+Contact **Salman Dev** directly for urgent matters.
+━━━━━━━━━━━━━━━━━━━━━━━━
     `.trim();
 
     ctx.reply(helpMessage, { parse_mode: 'Markdown' });

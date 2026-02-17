@@ -1,4 +1,5 @@
 import { Telegraf } from 'telegraf';
+import http from 'http';
 import { config } from './config/index.js';
 import { connectDatabase } from './database/connection.js';
 import { logger } from './utils/logger.js';
@@ -56,16 +57,29 @@ bot.action(/^lang_/, MessageController.handleLanguageSelection);
 // Message handling with rate limiting
 bot.on('text', rateLimitMiddleware, MessageController.handleMessage);
 
-// Graceful shutdown
-process.once('SIGINT', () => {
-  logger.info('SIGINT received, stopping bot...');
-  bot.stop('SIGINT');
+// Simple HTTP server for Render port binding
+const PORT = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Bot is running\n');
 });
 
-process.once('SIGTERM', () => {
-  logger.info('SIGTERM received, stopping bot...');
-  bot.stop('SIGTERM');
+server.listen(PORT, () => {
+  logger.info(`🌐 Health check server listening on port ${PORT}`);
 });
+
+// Graceful shutdown
+const shutdown = (signal) => {
+  logger.info(`${signal} received, stopping bot...`);
+  bot.stop(signal);
+  server.close(() => {
+    logger.info('HTTP server closed');
+    process.exit(0);
+  });
+};
+
+process.once('SIGINT', () => shutdown('SIGINT'));
+process.once('SIGTERM', () => shutdown('SIGTERM'));
 
 // Start bot
 bot.launch()

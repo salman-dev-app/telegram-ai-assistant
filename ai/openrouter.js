@@ -6,7 +6,13 @@ export class OpenRouterAI {
   constructor() {
     this.apiKey = config.openRouter.apiKey;
     this.baseUrl = config.openRouter.baseUrl;
-    this.models = config.openRouter.models;
+    // Updated models for better reliability and performance
+    this.models = [
+      'google/gemini-2.0-flash-exp:free', // Fast and reliable
+      'meta-llama/llama-3.3-70b-instruct:free', // High quality
+      'mistralai/mistral-7b-instruct:free', // Solid fallback
+      'stepfun/step-3.5-flash:free' // Final fallback
+    ];
   }
 
   async generateResponse(prompt, userLanguage = 'english', retryCount = 0) {
@@ -30,7 +36,7 @@ export class OpenRouterAI {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          max_tokens: 150, // Keep responses short
+          max_tokens: 200, // Slightly increased for better quality
           temperature: 0.7,
         },
         {
@@ -40,7 +46,7 @@ export class OpenRouterAI {
             'HTTP-Referer': 'https://github.com/salman-dev-app',
             'X-Title': 'Salman Dev AI Assistant'
           },
-          timeout: 15000 // 15 second timeout
+          timeout: 20000 // Increased to 20 seconds
         }
       );
 
@@ -54,7 +60,8 @@ export class OpenRouterAI {
       return aiResponse;
 
     } catch (error) {
-      logger.error(`AI request failed with ${currentModel}:`, error.message);
+      const errorMessage = error.response?.data?.error?.message || error.message;
+      logger.error(`AI request failed with ${currentModel}: ${errorMessage}`);
       
       // Try next model
       if (retryCount < this.models.length - 1) {
