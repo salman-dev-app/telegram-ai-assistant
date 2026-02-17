@@ -1,28 +1,25 @@
-# 🚀 Salman Dev - Premium Telegram AI Assistant
+# 👑 Salman Dev - Elite AI Assistant
 
-_A production-ready, highly stylish, and human-like Telegram AI Assistant for the "Salman Dev" brand. This bot is engineered to provide a premium user experience with advanced AI, robust error handling, and a sleek UI._
+_A premium, production-ready Telegram AI Assistant for the "Salman Dev" brand. This bot is engineered for high-performance, elite UI, and intelligent presence management._
 
 ---
 
-## 💎 Premium Features
+## 💎 Elite Features
 
-### 🎨 Stylish UI & UX
-- **Modern Layouts**: Clean, structured messages with professional dividers and icons.
-- **Enhanced Emojis**: Carefully selected icons for a premium look and feel.
-- **Interactive Buttons**: Stylish inline keyboards for language selection and navigation.
-- **Human Simulation**: Realistic typing delays and natural conversation flow.
+### 🚦 Intelligent Presence Management
+- **🟢 Online Mode**: The bot stays silent. Salman handles all conversations personally.
+- **🟡 Busy Mode**: AI handles queries while Salman is busy.
+- **🔴 Away Mode**: AI handles all interactions while Salman is offline.
+
+### 🎨 Premium UI & UX
+- **Elite Layouts**: Clean, structured messages with professional dividers and premium icons.
+- **Romanized Language Support**: Native support for **Bangla** and **Hindi** written in English letters (e.g., "Kemon achen?").
+- **Lightning Fast**: Optimized AI response times with reduced typing delays.
 
 ### 🧠 Advanced AI System
-- **Multi-Model Fallback**: 4-tier fallback system using top-tier models (Gemini 2.0, Llama 3.3, Mistral, Stepfun).
+- **Working Free Models**: Fixed AI errors by using confirmed working free models (Gemini 2.0, Llama 3.2, Qwen 2.5).
 - **Context Awareness**: Remembers recent interactions for seamless conversations.
-- **Brand Memory**: Dynamically injected brand knowledge for consistent messaging.
-- **Multi-Language**: Native support for **Bangla**, **Hindi**, and **English**.
-
-### 🛡️ Enterprise-Grade Reliability
-- **Port Binding**: Fixed deployment issues on Render/Railway with built-in health check server.
-- **Anti-Spam**: Sophisticated rate limiting and duplicate message detection.
-- **Admin Security**: Restricted access to critical management commands.
-- **Structured Logging**: Comprehensive Winston logging for monitoring and debugging.
+- **Brand Intel**: Dynamically injected brand knowledge for consistent messaging.
 
 ---
 
@@ -31,9 +28,8 @@ _A production-ready, highly stylish, and human-like Telegram AI Assistant for th
 - **Runtime**: Node.js (Latest LTS)
 - **Framework**: Telegraf.js
 - **Database**: MongoDB (Mongoose)
-- **AI API**: OpenRouter
+- **AI API**: OpenRouter (Strictly Free Models)
 - **Server**: Built-in HTTP for health checks
-- **Logging**: Winston
 
 ---
 
@@ -63,28 +59,15 @@ npm start
 
 ---
 
-## 🚀 Deployment (Fixed for Render/Railway)
+## 🤖 Admin Command Center
 
-This version includes a built-in HTTP server to prevent "No open ports detected" errors during deployment.
-
-### Render Deployment:
-1. Connect your GitHub repo.
-2. Set **Build Command** to `npm install`.
-3. Set **Start Command** to `npm start`.
-4. Add your environment variables.
-5. Render will now detect the port and stay online!
-
----
-
-## 🤖 Admin Commands
-
-- `/start` - 🚀 Launch the assistant
-- `/help` - ℹ️ View help menu
-- `/update_memory` - 📝 Update brand info
-- `/add_product` - 🛍️ Add new product
-- `/status` - 🚦 Change availability
-- `/view_memory` - 📊 System overview
-- `/list_products` - 📜 Product catalog
+- `/start` - 👑 Launch the assistant
+- `/help` - 📖 View user guide
+- `/update_memory` - 📝 Update brand intel
+- `/add_product` - 🛍️ Add new asset
+- `/status` - 🚦 Presence control
+- `/view_memory` - 📊 System stats
+- `/list_products` - 📜 Asset catalog
 
 ---
 

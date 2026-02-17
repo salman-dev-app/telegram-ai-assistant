@@ -6,12 +6,12 @@ export class OpenRouterAI {
   constructor() {
     this.apiKey = config.openRouter.apiKey;
     this.baseUrl = config.openRouter.baseUrl;
-    // Strictly using FREE models from OpenRouter to ensure no costs
+    // Using confirmed working free models from OpenRouter
     this.models = [
       'google/gemini-2.0-flash-exp:free',
-      'meta-llama/llama-3.3-70b-instruct:free',
-      'mistralai/mistral-7b-instruct:free',
-      'stepfun/step-3.5-flash:free'
+      'meta-llama/llama-3.2-3b-instruct:free',
+      'qwen/qwen-2.5-72b-instruct:free',
+      'mistralai/pixtral-12b:free'
     ];
   }
 
@@ -36,7 +36,7 @@ export class OpenRouterAI {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          max_tokens: 200,
+          max_tokens: 150,
           temperature: 0.7,
         },
         {
@@ -46,7 +46,7 @@ export class OpenRouterAI {
             'HTTP-Referer': 'https://github.com/salman-dev-app',
             'X-Title': 'Salman Dev AI Assistant'
           },
-          timeout: 20000
+          timeout: 10000 // Reduced timeout for faster fallback
         }
       );
 
@@ -76,8 +76,8 @@ export class OpenRouterAI {
 
   getSystemPrompt(language) {
     const languageInstructions = {
-      bangla: 'তুমি বাংলায় উত্তর দেবে।',
-      hindi: 'आप हिंदी में जवाब দিবেন।',
+      bangla: 'You MUST respond in Romanized Bangla (Bangla words written in English letters/alphabet). Example: "Kemon achen? Ami apnar ki shahajjo korte pari?"',
+      hindi: 'You MUST respond in Romanized Hindi (Hindi words written in English letters/alphabet). Example: "Kaise hain aap? Main aapki kya madad kar sakta hoon?"',
       english: 'You will respond in English.'
     };
 
@@ -88,7 +88,7 @@ Your role:
 - Explain services and products clearly and concisely
 - Keep conversations engaging and natural
 - NEVER sound robotic or like ChatGPT
-- Keep responses SHORT (2-3 sentences maximum)
+- Keep responses VERY SHORT (1-2 sentences maximum)
 - Be helpful but redirect sales confirmations to Salman Dev
 - Act like a real human business assistant
 
@@ -105,8 +105,8 @@ Remember: You're representing a real person's brand. Be authentic, helpful, and 
 
   getFallbackResponse(language) {
     const fallbacks = {
-      bangla: 'দুঃখিত, আমি এই মুহূর্তে সাড়া দিতে পারছি না। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।',
-      hindi: 'क्षমা करें, मैं अभी जवाब नहीं दे पा रहा हूं। कृपया थोड़ी देर बाद पुनः प्रयास करें।',
+      bangla: 'Dukkito, ami ekhon reply dite parchi na. Ektu por abar try korun.',
+      hindi: 'Maaf kijiye, main abhi jawab nahi de pa raha hoon. Kripya thodi der baad fir koshish karein.',
       english: 'Sorry, I\'m having trouble responding right now. Please try again in a moment.'
     };
 

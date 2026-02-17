@@ -9,17 +9,17 @@ export class AdminController {
       
       if (!text) {
         return ctx.reply(
-          '📝 *UPDATE BRAND MEMORY*\n' +
+          '📝 *UPDATE BRAND INTEL*\n' +
           '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
           'Usage: `/update_memory [field] [value]`\n\n' +
-          '🔹 *Available Fields:*\n' +
-          '• `about` - About Salman Dev\n' +
-          '• `services` - Services (comma-separated)\n' +
-          '• `offers` - Current offers\n' +
-          '• `availability` - Availability status\n' +
-          '• `notes` - Custom notes\n\n' +
+          '💎 *Available Fields:*\n' +
+          '• `about` - Brand Identity\n' +
+          '• `services` - Premium Services\n' +
+          '• `offers` - Exclusive Deals\n' +
+          '• `availability` - Presence Info\n' +
+          '• `notes` - Custom Intel\n\n' +
           '💡 *Example:*\n' +
-          '`/update_memory about Salman Dev is a full-stack developer specializing in AI solutions`',
+          '`/update_memory about Salman Dev is an elite full-stack developer.`',
           { parse_mode: 'Markdown' }
         );
       }
@@ -59,7 +59,7 @@ export class AdminController {
       await memory.save();
 
       logger.info(`Brand memory updated by admin: ${field}`);
-      ctx.reply(`✅ *Memory Updated Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n🔹 *Field:* ${field}\n🔹 *Value:* ${value}`, { parse_mode: 'Markdown' });
+      ctx.reply(`✅ *Intel Updated Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n💎 *Field:* ${field}\n💎 *Value:* ${value}`, { parse_mode: 'Markdown' });
 
     } catch (error) {
       logger.error('Error in handleUpdateMemory:', error);
@@ -73,11 +73,11 @@ export class AdminController {
       
       if (!text) {
         return ctx.reply(
-          '🛍️ *ADD NEW PRODUCT*\n' +
+          '🛍️ *ADD NEW ASSET*\n' +
           '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
           'Usage: `/add_product [name] | [description] | [price] | [features] | [demo_url]`\n\n' +
           '💡 *Example:*\n' +
-          '`/add_product AI Chatbot | Custom AI assistant for businesses | $500 | 24/7 support, Multi-language, Custom training | https://demo.example.com`\n\n' +
+          '`/add_product Elite Bot | Custom AI for business | $1000 | 24/7 support, Multi-language | https://demo.com`\n\n' +
           '⚠️ *Note:* Features should be comma-separated. Demo URL is optional.',
           { parse_mode: 'Markdown' }
         );
@@ -106,7 +106,7 @@ export class AdminController {
       logger.info(`Product added by admin: ${name}`);
       
       ctx.reply(
-        `✅ *Product Added Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `✅ *Asset Added Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `📦 *${product.name}*\n` +
         `💰 *Price:* ${product.price}\n` +
         `📝 *Description:* ${product.description}\n` +
@@ -127,10 +127,12 @@ export class AdminController {
       
       if (!text || !['online', 'busy', 'away'].includes(text)) {
         return ctx.reply(
-          '🚦 *UPDATE AVAILABILITY STATUS*\n' +
+          '🚦 *PRESENCE CONTROL*\n' +
           '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
           'Usage: `/status [online|busy|away]`\n\n' +
-          'Current status will affect how the bot responds to users.',
+          '🟢 *Online:* Bot is silent. Salman handles all.\n' +
+          '🟡 *Busy:* AI handles queries. Salman is busy.\n' +
+          '🔴 *Away:* AI handles all. Salman is offline.',
           { parse_mode: 'Markdown' }
         );
       }
@@ -146,7 +148,7 @@ export class AdminController {
       };
 
       logger.info(`Status updated by admin: ${text}`);
-      ctx.reply(`${statusEmoji[text]} *Status Updated:* **${text.toUpperCase()}**`, { parse_mode: 'Markdown' });
+      ctx.reply(`${statusEmoji[text]} *Presence Updated:* **${text.toUpperCase()}**`, { parse_mode: 'Markdown' });
 
     } catch (error) {
       logger.error('Error in handleStatus:', error);
@@ -160,14 +162,14 @@ export class AdminController {
       const products = await Product.find({ isActive: true });
 
       const message = `
-📊 *SYSTEM OVERVIEW*
+📊 *SYSTEM STATS*
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-👤 *Brand Profile:*
+👤 *Brand Identity:*
 ${memory.getFormattedMemory()}
 
-📦 *Active Products:* (${products.length})
-${products.map(p => `• ${p.name} - ${p.price}`).join('\n') || 'No products added yet'}
+📦 *Active Assets:* (${products.length})
+${products.map(p => `• ${p.name} - ${p.price}`).join('\n') || 'No assets added yet'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 🕒 *Last Updated:* ${memory.lastUpdated.toLocaleString()}
@@ -186,7 +188,7 @@ ${products.map(p => `• ${p.name} - ${p.price}`).join('\n') || 'No products add
       const products = await Product.find({ isActive: true });
 
       if (products.length === 0) {
-        return ctx.reply('📦 *No products available.*');
+        return ctx.reply('📦 *No assets available.*');
       }
 
       const message = products.map((p, i) => 
@@ -196,7 +198,7 @@ ${products.map(p => `• ${p.name} - ${p.price}`).join('\n') || 'No products add
         `   🆔 ID: \`${p._id}\``
       ).join('\n\n');
 
-      ctx.reply(`📜 *PRODUCT CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${message}`, { parse_mode: 'Markdown' });
+      ctx.reply(`📜 *ASSET CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${message}`, { parse_mode: 'Markdown' });
 
     } catch (error) {
       logger.error('Error in handleListProducts:', error);

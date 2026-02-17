@@ -15,6 +15,15 @@ export class MessageController {
         return;
       }
 
+      // Get brand memory to check status
+      const brandMemory = await BrandMemory.getMemory();
+      
+      // If Salman is ONLINE, the bot should NOT respond to anyone
+      if (brandMemory.status === 'online') {
+        logger.info('Salman is ONLINE. Bot is silent.');
+        return;
+      }
+
       const user = await UserService.getOrCreateUser(ctx);
       const message = ctx.message.text;
 
@@ -36,8 +45,7 @@ export class MessageController {
       // Simulate typing delay (human-like behavior)
       await MessageController.simulateTyping(ctx);
 
-      // Get brand memory and products
-      const brandMemory = await BrandMemory.getMemory();
+      // Get products
       const productsInfo = await Product.getAllFormatted();
 
       // Generate AI response
@@ -70,18 +78,18 @@ export class MessageController {
     try {
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback('🇧🇩 বাংলা', 'lang_bangla'),
-          Markup.button.callback('🇮🇳 हिन्दी', 'lang_hindi'),
+          Markup.button.callback('🇧🇩 Bangla', 'lang_bangla'),
+          Markup.button.callback('🇮🇳 Hindi', 'lang_hindi'),
           Markup.button.callback('🇬🇧 English', 'lang_english')
         ]
       ]);
 
       await ctx.reply(
-        '✨ *Welcome to Salman Dev Assistant* ✨\n\n' +
-        'Please select your preferred language to continue:\n' +
+        '💎 *SALMAN DEV PREMIUM ASSISTANT* 💎\n' +
         '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-        '👋 স্বাগতম! আপনার ভাষা নির্বাচন করুন\n' +
-        '👋 स्वागत है! अपनी भाषा चुनें',
+        'Please select your language to continue:\n\n' +
+        '👋 Swagotom! Apnar bhasha bachai korun\n' +
+        '👋 Swagat hai! Apni bhasha chunein',
         {
           parse_mode: 'Markdown',
           ...keyboard,
@@ -111,8 +119,8 @@ export class MessageController {
       await UserService.setUserLanguage(userId, language);
 
       const confirmMessages = {
-        bangla: '✅ *ভাষা সেট করা হয়েছে:* বাংলা\n\nএখন আমি আপনাকে সাহায্য করতে প্রস্তুত! 🚀',
-        hindi: '✅ *भाषा सेट की गई:* हिंदी\n\nअब मैं आपकी सहायता के लिए तैयार हूँ! 🚀',
+        bangla: '✅ *Bhasha set kora hoyeche:* Bangla\n\nEkhon ami apnake shahajjo korte prostut! 🚀',
+        hindi: '✅ *Bhasha set ho gayi hai:* Hindi\n\nAb main aapki madad ke liye taiyaar hoon! 🚀',
         english: '✅ *Language set:* English\n\nI am now ready to assist you! 🚀'
       };
 
@@ -138,9 +146,9 @@ export class MessageController {
     try {
       await ctx.sendChatAction('typing');
       
-      // Random delay between min and max
+      // Faster typing delay for better UX
       const delay = Math.floor(
-        Math.random() * (3000 - 1000 + 1) + 1000
+        Math.random() * (2000 - 500 + 1) + 500
       );
       
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -151,26 +159,26 @@ export class MessageController {
 
   static async handleStart(ctx) {
     const welcomeMessage = `
-🚀 *SALMAN DEV AI ASSISTANT* 🚀
+👑 *SALMAN DEV OFFICIAL AI* 👑
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-Welcome! I am the official digital assistant for **Salman Dev**. I am here to provide you with instant support and information.
+Welcome to the premium digital assistant for **Salman Dev**. I am here to provide elite support and information.
 
-🌟 *What I Can Do:*
-🔹 Explain our premium services
-🔹 Showcase product demos
-🔹 Answer your business queries
-🔹 Keep you updated while Salman is away
+✨ *Core Capabilities:*
+💎 Premium Service Insights
+🔥 Exclusive Product Demos
+⚡ Instant Business Queries
+🛡️ 24/7 Brand Representation
 
-🛠 *Admin Control Panel:*
-📝 \`/update_memory\` - Update brand info
-📦 \`/add_product\` - Add new product
-🚦 \`/status\` - Change availability
-📊 \`/view_memory\` - System overview
-📜 \`/list_products\` - Product catalog
+🛠 *Admin Command Center:*
+📝 \`/update_memory\` - Brand Intel
+📦 \`/add_product\` - New Asset
+🚦 \`/status\` - Presence Control
+📊 \`/view_memory\` - System Stats
+📜 \`/list_products\` - Asset Catalog
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-*Ready to assist you 24/7!*
+*Elite support at your fingertips.*
     `.trim();
 
     ctx.reply(welcomeMessage, { parse_mode: 'Markdown' });
@@ -178,13 +186,13 @@ Welcome! I am the official digital assistant for **Salman Dev**. I am here to pr
 
   static async handleHelp(ctx) {
     const helpMessage = `
-ℹ️ *HELP & INFORMATION*
+📖 *PREMIUM USER GUIDE*
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-👤 *For Users:*
-• Simply send a message in the group.
+👤 *For Clients:*
+• Send a message in the group.
 • I will reply directly to your thread.
-• First-time users will be asked for language.
+• AI handles queries when Salman is Busy/Away.
 
 🔑 *For Admin:*
 • \`/update_memory [field] [value]\`
@@ -193,8 +201,8 @@ Welcome! I am the official digital assistant for **Salman Dev**. I am here to pr
 • \`/view_memory\`
 • \`/list_products\`
 
-🆘 *Need Human Support?*
-Contact **Salman Dev** directly for urgent matters.
+🆘 *Direct Access:*
+Contact **Salman Dev** for high-priority matters.
 ━━━━━━━━━━━━━━━━━━━━━━━━
     `.trim();
 
