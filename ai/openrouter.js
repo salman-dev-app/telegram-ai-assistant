@@ -6,12 +6,12 @@ export class OpenRouterAI {
   constructor() {
     this.apiKey = config.openRouter.apiKey;
     this.baseUrl = config.openRouter.baseUrl;
-    // Updated models for better reliability and performance
+    // Strictly using FREE models from OpenRouter to ensure no costs
     this.models = [
-      'google/gemini-2.0-flash-exp:free', // Fast and reliable
-      'meta-llama/llama-3.3-70b-instruct:free', // High quality
-      'mistralai/mistral-7b-instruct:free', // Solid fallback
-      'stepfun/step-3.5-flash:free' // Final fallback
+      'google/gemini-2.0-flash-exp:free',
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'mistralai/mistral-7b-instruct:free',
+      'stepfun/step-3.5-flash:free'
     ];
   }
 
@@ -36,7 +36,7 @@ export class OpenRouterAI {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          max_tokens: 200, // Slightly increased for better quality
+          max_tokens: 200,
           temperature: 0.7,
         },
         {
@@ -46,7 +46,7 @@ export class OpenRouterAI {
             'HTTP-Referer': 'https://github.com/salman-dev-app',
             'X-Title': 'Salman Dev AI Assistant'
           },
-          timeout: 20000 // Increased to 20 seconds
+          timeout: 20000
         }
       );
 
@@ -77,7 +77,7 @@ export class OpenRouterAI {
   getSystemPrompt(language) {
     const languageInstructions = {
       bangla: 'তুমি বাংলায় উত্তর দেবে।',
-      hindi: 'आप हिंदी में जवाब देंगे।',
+      hindi: 'आप हिंदी में जवाब দিবেন।',
       english: 'You will respond in English.'
     };
 
@@ -106,7 +106,7 @@ Remember: You're representing a real person's brand. Be authentic, helpful, and 
   getFallbackResponse(language) {
     const fallbacks = {
       bangla: 'দুঃখিত, আমি এই মুহূর্তে সাড়া দিতে পারছি না। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।',
-      hindi: 'क्षमा करें, मैं अभी जवाब नहीं दे पा रहा हूं। कृपया थोड़ी देर बाद पुनः प्रयास करें।',
+      hindi: 'क्षমা करें, मैं अभी जवाब नहीं दे पा रहा हूं। कृपया थोड़ी देर बाद पुनः प्रयास करें।',
       english: 'Sorry, I\'m having trouble responding right now. Please try again in a moment.'
     };
 
