@@ -70,7 +70,6 @@ export class MessageController {
 
     } catch (error) {
       logger.error('Error in handleMessage:', error);
-      // Fail silently to avoid exposing errors to users
     }
   }
 
@@ -84,18 +83,21 @@ export class MessageController {
         ]
       ]);
 
-      await ctx.reply(
-        '💎 *SALMAN DEV PREMIUM ASSISTANT* 💎\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-        'Please select your language to continue:\n\n' +
-        '👋 Swagotom! Apnar bhasha bachai korun\n' +
-        '👋 Swagat hai! Apni bhasha chunein',
-        {
+      const text = '💎 *SALMAN DEV PREMIUM ASSISTANT* 💎\n' +
+                   '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                   'Please select your language to continue:\n\n' +
+                   '👋 Swagotom! Apnar bhasha bachai korun\n' +
+                   '👋 Swagat hai! Apni bhasha chunein';
+
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(text, { parse_mode: 'Markdown', ...keyboard });
+      } else {
+        await ctx.reply(text, {
           parse_mode: 'Markdown',
           ...keyboard,
           reply_to_message_id: ctx.message.message_id
-        }
-      );
+        });
+      }
     } catch (error) {
       logger.error('Error in showLanguageSelection:', error);
     }
@@ -124,13 +126,13 @@ export class MessageController {
         english: '✅ *Language set:* English\n\nI am now ready to assist you! 🚀'
       };
 
-      // Delete the language selection message
-      await ctx.deleteMessage();
-      
-      // Send confirmation as reply to original message
-      await ctx.reply(confirmMessages[language], {
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Main Menu', 'main_menu')]
+      ]);
+
+      await ctx.editMessageText(confirmMessages[language], {
         parse_mode: 'Markdown',
-        reply_to_message_id: ctx.callbackQuery.message.reply_to_message.message_id
+        ...keyboard
       });
 
       await ctx.answerCbQuery();
@@ -145,12 +147,7 @@ export class MessageController {
   static async simulateTyping(ctx) {
     try {
       await ctx.sendChatAction('typing');
-      
-      // Faster typing delay for better UX
-      const delay = Math.floor(
-        Math.random() * (2000 - 500 + 1) + 500
-      );
-      
+      const delay = Math.floor(Math.random() * (2000 - 500 + 1) + 500);
       await new Promise(resolve => setTimeout(resolve, delay));
     } catch (error) {
       logger.error('Error in simulateTyping:', error);
@@ -170,18 +167,30 @@ Welcome to the premium digital assistant for **Salman Dev**. I am here to provid
 ⚡ Instant Business Queries
 🛡️ 24/7 Brand Representation
 
-🛠 *Admin Command Center:*
-📝 \`/update_memory\` - Brand Intel
-📦 \`/add_product\` - New Asset
-🚦 \`/status\` - Presence Control
-📊 \`/view_memory\` - System Stats
-📜 \`/list_products\` - Asset Catalog
-
 ━━━━━━━━━━━━━━━━━━━━━━━━
 *Elite support at your fingertips.*
     `.trim();
 
-    ctx.reply(welcomeMessage, { parse_mode: 'Markdown' });
+    const keyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.callback('📦 Products', 'view_products'),
+        Markup.button.callback('📖 Help', 'help_menu')
+      ],
+      [
+        Markup.button.callback('🌐 Language', 'lang_selection'),
+        Markup.button.callback('🛠 Admin', 'admin_menu')
+      ]
+    ]);
+
+    if (ctx.callbackQuery) {
+      if (ctx.callbackQuery.data === 'lang_selection') {
+        return MessageController.showLanguageSelection(ctx);
+      }
+      await ctx.editMessageText(welcomeMessage, { parse_mode: 'Markdown', ...keyboard });
+      await ctx.answerCbQuery();
+    } else {
+      await ctx.reply(welcomeMessage, { parse_mode: 'Markdown', ...keyboard });
+    }
   }
 
   static async handleHelp(ctx) {
@@ -194,18 +203,89 @@ Welcome to the premium digital assistant for **Salman Dev**. I am here to provid
 • I will reply directly to your thread.
 • AI handles queries when Salman is Busy/Away.
 
-🔑 *For Admin:*
-• \`/update_memory [field] [value]\`
-• \`/add_product [name] | [desc] | [price] | [features] | [demo]\`
-• \`/status [online|busy|away]\`
-• \`/view_memory\`
-• \`/list_products\`
-
 🆘 *Direct Access:*
 Contact **Salman Dev** for high-priority matters.
 ━━━━━━━━━━━━━━━━━━━━━━━━
     `.trim();
 
-    ctx.reply(helpMessage, { parse_mode: 'Markdown' });
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.callback('🏠 Back to Menu', 'main_menu')]
+    ]);
+
+    if (ctx.callbackQuery) {
+      await ctx.editMessageText(helpMessage, { parse_mode: 'Markdown', ...keyboard });
+      await ctx.answerCbQuery();
+    } else {
+      await ctx.reply(helpMessage, { parse_mode: 'Markdown', ...keyboard });
+    }
+  }
+
+  static async handleAdminMenu(ctx) {
+    const adminMessage = `
+🛠 *ADMIN COMMAND CENTER*
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 \`/update_memory\` - Brand Intel
+📦 \`/add_product\` - New Asset
+🚦 \`/status\` - Presence Control
+📊 \`/view_memory\` - System Stats
+📜 \`/list_products\` - Asset Catalog
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+*Select an action or use commands.*
+    `.trim();
+
+    const keyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.callback('🚦 Status Control', 'status_menu'),
+        Markup.button.callback('📊 System Stats', 'view_memory_cb')
+      ],
+      [Markup.button.callback('🏠 Back to Menu', 'main_menu')]
+    ]);
+
+    if (ctx.callbackQuery) {
+      if (ctx.callbackQuery.data === 'status_menu') {
+        // Import dynamically to avoid circular dependency if needed, 
+        // but here we can just call the method if we structure it right.
+        // For now, let's just show the message.
+      }
+      await ctx.editMessageText(adminMessage, { parse_mode: 'Markdown', ...keyboard });
+      await ctx.answerCbQuery();
+    } else {
+      await ctx.reply(adminMessage, { parse_mode: 'Markdown', ...keyboard });
+    }
+  }
+
+  static async handleListProducts(ctx) {
+    try {
+      const products = await Product.find({ isActive: true });
+
+      if (products.length === 0) {
+        const noProductsMsg = '📦 *No assets available.*';
+        const keyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Menu', 'main_menu')]]);
+        if (ctx.callbackQuery) return ctx.editMessageText(noProductsMsg, { parse_mode: 'Markdown', ...keyboard });
+        return ctx.reply(noProductsMsg, { parse_mode: 'Markdown', ...keyboard });
+      }
+
+      const message = `📜 *ASSET CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n` + 
+        products.map((p, i) => 
+          `${i + 1}. 📦 *${p.name}* - ${p.price}\n` +
+          `   📝 ${p.description}\n` +
+          `   🆔 ID: \`${p._id}\``
+        ).join('\n\n');
+
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Back to Menu', 'main_menu')]
+      ]);
+
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.answerCbQuery();
+      } else {
+        await ctx.reply(message, { parse_mode: 'Markdown', ...keyboard });
+      }
+    } catch (error) {
+      logger.error('Error in handleListProducts:', error);
+    }
   }
 }

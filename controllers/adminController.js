@@ -129,21 +129,23 @@ export class AdminController {
           Markup.button.callback('🟢 Online', 'status_online'),
           Markup.button.callback('🟡 Busy', 'status_busy'),
           Markup.button.callback('🔴 Away', 'status_away')
-        ]
+        ],
+        [Markup.button.callback('🛠 Admin Menu', 'admin_menu')]
       ]);
 
-      return ctx.reply(
-        '🚦 *PRESENCE CONTROL CENTER*\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-        'Select your current status below:\n\n' +
-        '🟢 *Online:* Bot is silent. You handle all.\n' +
-        '🟡 *Busy:* AI handles queries. You are busy.\n' +
-        '🔴 *Away:* AI handles all. You are offline.',
-        {
-          parse_mode: 'Markdown',
-          ...keyboard
-        }
-      );
+      const text = '🚦 *PRESENCE CONTROL CENTER*\n' +
+                   '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+                   'Select your current status below:\n\n' +
+                   '🟢 *Online:* Bot is silent. You handle all.\n' +
+                   '🟡 *Busy:* AI handles queries. You are busy.\n' +
+                   '🔴 *Away:* AI handles all. You are offline.';
+
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(text, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.answerCbQuery();
+      } else {
+        await ctx.reply(text, { parse_mode: 'Markdown', ...keyboard });
+      }
     } catch (error) {
       logger.error('Error in handleStatus:', error);
       ctx.reply('❌ *Error:* Failed to open status control.');
@@ -169,10 +171,15 @@ export class AdminController {
         away: 'AWAY (AI Handling All)'
       };
 
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🚦 Back to Status', 'status_menu')],
+        [Markup.button.callback('🏠 Main Menu', 'main_menu')]
+      ]);
+
       await ctx.editMessageText(
         `✅ *Presence Updated Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `${statusEmoji[status]} *New Status:* **${statusText[status]}**`,
-        { parse_mode: 'Markdown' }
+        { parse_mode: 'Markdown', ...keyboard }
       );
 
       await ctx.answerCbQuery(`Status set to ${status.toUpperCase()}`);
@@ -211,8 +218,17 @@ ${products.map(p => `• ${p.name} - ${p.price}`).join('\n') || 'No assets added
 🕒 *Last Updated:* ${memory.lastUpdated.toLocaleString()}
       `.trim();
 
-      ctx.reply(message, { parse_mode: 'Markdown' });
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🛠 Admin Menu', 'admin_menu')],
+        [Markup.button.callback('🏠 Main Menu', 'main_menu')]
+      ]);
 
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(message, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.answerCbQuery();
+      } else {
+        await ctx.reply(message, { parse_mode: 'Markdown', ...keyboard });
+      }
     } catch (error) {
       logger.error('Error in handleViewMemory:', error);
       ctx.reply('❌ *Error:* Failed to retrieve memory. Please try again.');
@@ -234,8 +250,16 @@ ${products.map(p => `• ${p.name} - ${p.price}`).join('\n') || 'No assets added
         `   🆔 ID: \`${p._id}\``
       ).join('\n\n');
 
-      ctx.reply(`📜 *ASSET CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${message}`, { parse_mode: 'Markdown' });
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Back to Menu', 'main_menu')]
+      ]);
 
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(`📜 *ASSET CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${message}`, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.answerCbQuery();
+      } else {
+        await ctx.reply(`📜 *ASSET CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${message}`, { parse_mode: 'Markdown', ...keyboard });
+      }
     } catch (error) {
       logger.error('Error in handleListProducts:', error);
       ctx.reply('❌ *Error:* Failed to retrieve products. Please try again.');

@@ -54,6 +54,13 @@ bot.command('list_products', isAdmin, AdminController.handleListProducts);
 // Callbacks
 bot.action(/^lang_/, MessageController.handleLanguageSelection);
 bot.action(/^status_/, isAdmin, AdminController.handleStatusCallback);
+bot.action('main_menu', MessageController.handleStart);
+bot.action('help_menu', MessageController.handleHelp);
+bot.action('admin_menu', isAdmin, MessageController.handleAdminMenu);
+bot.action('view_products', MessageController.handleListProducts);
+bot.action('status_menu', isAdmin, AdminController.handleStatus);
+bot.action('view_memory_cb', isAdmin, AdminController.handleViewMemory);
+bot.action('lang_selection', MessageController.showLanguageSelection);
 
 // Message handling with rate limiting
 bot.on('text', rateLimitMiddleware, MessageController.handleMessage);
@@ -82,14 +89,26 @@ const shutdown = (signal) => {
 process.once('SIGINT', () => shutdown('SIGINT'));
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 
-// Start bot
-bot.launch()
-  .then(() => {
+// Start bot with deleteWebhook to fix 409 Conflict
+const startBot = async () => {
+  try {
+    // Clear any existing webhooks or polling instances
+    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+    
+    await bot.launch();
     logger.info('🤖 Bot started successfully!');
     logger.info(`📋 Admin ID: ${config.telegram.adminId}`);
     logger.info('✅ Ready to receive messages');
-  })
-  .catch((error) => {
+  } catch (error) {
     logger.error('Failed to start bot:', error);
-    process.exit(1);
-  });
+    // If it's a 409, we might want to retry after a short delay
+    if (error.code === 409) {
+      logger.info('Retrying bot launch in 5 seconds...');
+      setTimeout(startBot, 5000);
+    } else {
+      process.exit(1);
+    }
+  }
+};
+
+startBot();
