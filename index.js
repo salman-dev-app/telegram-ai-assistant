@@ -51,16 +51,18 @@ bot.command('status', isAdmin, AdminController.handleStatus);
 bot.command('view_memory', isAdmin, AdminController.handleViewMemory);
 bot.command('list_products', isAdmin, AdminController.handleListProducts);
 
-// Callbacks
-bot.action(/^lang_/, MessageController.handleLanguageSelection);
-bot.action(/^status_/, isAdmin, AdminController.handleStatusCallback);
+// Callbacks - User Actions
 bot.action('main_menu', MessageController.handleStart);
 bot.action('help_menu', MessageController.handleHelp);
-bot.action('admin_menu', isAdmin, MessageController.handleAdminMenu);
 bot.action('view_products', MessageController.handleListProducts);
-bot.action('status_menu', isAdmin, AdminController.handleStatus);
-bot.action('view_memory_cb', isAdmin, AdminController.handleViewMemory);
 bot.action('lang_selection', MessageController.showLanguageSelection);
+bot.action(/^lang_/, MessageController.handleLanguageSelection);
+
+// Callbacks - Admin Actions
+bot.action('admin_menu', isAdmin, MessageController.handleAdminMenu);
+bot.action('status_menu', isAdmin, AdminController.handleStatus);
+bot.action(/^status_/, isAdmin, AdminController.handleStatusCallback);
+bot.action('view_memory_cb', isAdmin, AdminController.handleViewMemory);
 
 // Message handling with rate limiting
 bot.on('text', rateLimitMiddleware, MessageController.handleMessage);

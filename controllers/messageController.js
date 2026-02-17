@@ -83,11 +83,13 @@ export class MessageController {
         ]
       ]);
 
-      const text = '💎 *SALMAN DEV PREMIUM ASSISTANT* 💎\n' +
+      const text = '💎 *SALMAN DEV ELITE ASSISTANT* 💎\n' +
                    '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-                   'Please select your language to continue:\n\n' +
-                   '👋 Swagotom! Apnar bhasha bachai korun\n' +
-                   '👋 Swagat hai! Apni bhasha chunein';
+                   '✨ *Welcome to the Premium Experience*\n\n' +
+                   'Please select your preferred language:\n' +
+                   '👋 Swagotom! Bhasha bachai korun\n' +
+                   '👋 Swagat hai! Bhasha chunein\n' +
+                   '━━━━━━━━━━━━━━━━━━━━━━━━';
 
       if (ctx.callbackQuery) {
         await ctx.editMessageText(text, { parse_mode: 'Markdown', ...keyboard });
@@ -95,7 +97,7 @@ export class MessageController {
         await ctx.reply(text, {
           parse_mode: 'Markdown',
           ...keyboard,
-          reply_to_message_id: ctx.message.message_id
+          reply_to_message_id: ctx.message?.message_id
         });
       }
     } catch (error) {
@@ -127,7 +129,7 @@ export class MessageController {
       };
 
       const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🏠 Main Menu', 'main_menu')]
+        [Markup.button.callback('🏠 Enter Dashboard', 'main_menu')]
       ]);
 
       await ctx.editMessageText(confirmMessages[language], {
@@ -147,7 +149,7 @@ export class MessageController {
   static async simulateTyping(ctx) {
     try {
       await ctx.sendChatAction('typing');
-      const delay = Math.floor(Math.random() * (2000 - 500 + 1) + 500);
+      const delay = Math.floor(Math.random() * (1500 - 500 + 1) + 500);
       await new Promise(resolve => setTimeout(resolve, delay));
     } catch (error) {
       logger.error('Error in simulateTyping:', error);
@@ -155,13 +157,14 @@ export class MessageController {
   }
 
   static async handleStart(ctx) {
-    const welcomeMessage = `
+    try {
+      const welcomeMessage = `
 👑 *SALMAN DEV OFFICIAL AI* 👑
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-Welcome to the premium digital assistant for **Salman Dev**. I am here to provide elite support and information.
+Welcome to the elite digital assistant for **Salman Dev**. I am engineered to provide premium support and brand representation.
 
-✨ *Core Capabilities:*
+✨ *Elite Capabilities:*
 💎 Premium Service Insights
 🔥 Exclusive Product Demos
 ⚡ Instant Business Queries
@@ -169,33 +172,34 @@ Welcome to the premium digital assistant for **Salman Dev**. I am here to provid
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 *Elite support at your fingertips.*
-    `.trim();
+      `.trim();
 
-    const keyboard = Markup.inlineKeyboard([
-      [
-        Markup.button.callback('📦 Products', 'view_products'),
-        Markup.button.callback('📖 Help', 'help_menu')
-      ],
-      [
-        Markup.button.callback('🌐 Language', 'lang_selection'),
-        Markup.button.callback('🛠 Admin', 'admin_menu')
-      ]
-    ]);
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback('📦 Elite Products', 'view_products'),
+          Markup.button.callback('📖 User Guide', 'help_menu')
+        ],
+        [
+          Markup.button.callback('🌐 Language', 'lang_selection'),
+          Markup.button.callback('🛠 Admin Panel', 'admin_menu')
+        ]
+      ]);
 
-    if (ctx.callbackQuery) {
-      if (ctx.callbackQuery.data === 'lang_selection') {
-        return MessageController.showLanguageSelection(ctx);
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(welcomeMessage, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.answerCbQuery();
+      } else {
+        await ctx.reply(welcomeMessage, { parse_mode: 'Markdown', ...keyboard });
       }
-      await ctx.editMessageText(welcomeMessage, { parse_mode: 'Markdown', ...keyboard });
-      await ctx.answerCbQuery();
-    } else {
-      await ctx.reply(welcomeMessage, { parse_mode: 'Markdown', ...keyboard });
+    } catch (error) {
+      logger.error('Error in handleStart:', error);
     }
   }
 
   static async handleHelp(ctx) {
-    const helpMessage = `
-📖 *PREMIUM USER GUIDE*
+    try {
+      const helpMessage = `
+📖 *ELITE USER GUIDE*
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
 👤 *For Clients:*
@@ -206,22 +210,26 @@ Welcome to the premium digital assistant for **Salman Dev**. I am here to provid
 🆘 *Direct Access:*
 Contact **Salman Dev** for high-priority matters.
 ━━━━━━━━━━━━━━━━━━━━━━━━
-    `.trim();
+      `.trim();
 
-    const keyboard = Markup.inlineKeyboard([
-      [Markup.button.callback('🏠 Back to Menu', 'main_menu')]
-    ]);
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Back to Dashboard', 'main_menu')]
+      ]);
 
-    if (ctx.callbackQuery) {
-      await ctx.editMessageText(helpMessage, { parse_mode: 'Markdown', ...keyboard });
-      await ctx.answerCbQuery();
-    } else {
-      await ctx.reply(helpMessage, { parse_mode: 'Markdown', ...keyboard });
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(helpMessage, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.answerCbQuery();
+      } else {
+        await ctx.reply(helpMessage, { parse_mode: 'Markdown', ...keyboard });
+      }
+    } catch (error) {
+      logger.error('Error in handleHelp:', error);
     }
   }
 
   static async handleAdminMenu(ctx) {
-    const adminMessage = `
+    try {
+      const adminMessage = `
 🛠 *ADMIN COMMAND CENTER*
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -233,26 +241,24 @@ Contact **Salman Dev** for high-priority matters.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 *Select an action or use commands.*
-    `.trim();
+      `.trim();
 
-    const keyboard = Markup.inlineKeyboard([
-      [
-        Markup.button.callback('🚦 Status Control', 'status_menu'),
-        Markup.button.callback('📊 System Stats', 'view_memory_cb')
-      ],
-      [Markup.button.callback('🏠 Back to Menu', 'main_menu')]
-    ]);
+      const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback('🚦 Status Control', 'status_menu'),
+          Markup.button.callback('📊 System Stats', 'view_memory_cb')
+        ],
+        [Markup.button.callback('🏠 Back to Dashboard', 'main_menu')]
+      ]);
 
-    if (ctx.callbackQuery) {
-      if (ctx.callbackQuery.data === 'status_menu') {
-        // Import dynamically to avoid circular dependency if needed, 
-        // but here we can just call the method if we structure it right.
-        // For now, let's just show the message.
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(adminMessage, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.answerCbQuery();
+      } else {
+        await ctx.reply(adminMessage, { parse_mode: 'Markdown', ...keyboard });
       }
-      await ctx.editMessageText(adminMessage, { parse_mode: 'Markdown', ...keyboard });
-      await ctx.answerCbQuery();
-    } else {
-      await ctx.reply(adminMessage, { parse_mode: 'Markdown', ...keyboard });
+    } catch (error) {
+      logger.error('Error in handleAdminMenu:', error);
     }
   }
 
@@ -262,12 +268,15 @@ Contact **Salman Dev** for high-priority matters.
 
       if (products.length === 0) {
         const noProductsMsg = '📦 *No assets available.*';
-        const keyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Menu', 'main_menu')]]);
-        if (ctx.callbackQuery) return ctx.editMessageText(noProductsMsg, { parse_mode: 'Markdown', ...keyboard });
+        const keyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Dashboard', 'main_menu')]]);
+        if (ctx.callbackQuery) {
+          await ctx.editMessageText(noProductsMsg, { parse_mode: 'Markdown', ...keyboard });
+          return ctx.answerCbQuery();
+        }
         return ctx.reply(noProductsMsg, { parse_mode: 'Markdown', ...keyboard });
       }
 
-      const message = `📜 *ASSET CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n` + 
+      const message = `📜 *ELITE ASSET CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n` + 
         products.map((p, i) => 
           `${i + 1}. 📦 *${p.name}* - ${p.price}\n` +
           `   📝 ${p.description}\n` +
@@ -275,7 +284,7 @@ Contact **Salman Dev** for high-priority matters.
         ).join('\n\n');
 
       const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🏠 Back to Menu', 'main_menu')]
+        [Markup.button.callback('🏠 Back to Dashboard', 'main_menu')]
       ]);
 
       if (ctx.callbackQuery) {

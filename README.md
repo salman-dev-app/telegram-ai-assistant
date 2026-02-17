@@ -1,25 +1,28 @@
-# 👑 Salman Dev - Elite AI Assistant
+# 👑 Salman Dev - Elite AI Assistant (v2.0)
 
-_A premium, production-ready Telegram AI Assistant for the "Salman Dev" brand. This bot is engineered for high-performance, elite UI, and intelligent presence management._
+_The ultimate, production-ready Telegram AI Assistant for the "Salman Dev" brand. Engineered for 100% reliability, elite UI, and intelligent presence management._
 
 ---
 
-## 💎 Elite Features
+## 💎 Elite Features (v2.0)
 
-### 🚦 Intelligent Presence Management
-- **🟢 Online Mode**: The bot stays silent. Salman handles all conversations personally.
-- **🟡 Busy Mode**: AI handles queries while Salman is busy.
-- **🔴 Away Mode**: AI handles all interactions while Salman is offline.
+### 🚀 100% Reliable AI
+- **Verified Free Models**: Fixed AI response issues by using confirmed working free models (Gemini 2.0 Flash, Llama 3.3, DeepSeek R1, Qwen 2.5).
+- **Multi-Tier Fallback**: Advanced error handling ensures the bot never stays silent.
+- **Romanized Language**: Professional support for **Bangla** and **Hindi** using English letters (e.g., "Kemon achen?").
 
-### 🎨 Premium UI & UX
-- **Elite Layouts**: Clean, structured messages with professional dividers and premium icons.
-- **Romanized Language Support**: Native support for **Bangla** and **Hindi** written in English letters (e.g., "Kemon achen?").
-- **Lightning Fast**: Optimized AI response times with reduced typing delays.
+### 🎮 Fully Interactive UI
+- **One-Click Controls**: Manage your status (Online, Busy, Away) with a single click.
+- **Seamless Navigation**: Entirely button-driven interface for Products, Help, and Language selection.
+- **Elite Layouts**: Modern, structured messages with professional dividers and premium icons.
 
-### 🧠 Advanced AI System
-- **Working Free Models**: Fixed AI errors by using confirmed working free models (Gemini 2.0, Llama 3.2, Qwen 2.5).
-- **Context Awareness**: Remembers recent interactions for seamless conversations.
-- **Brand Intel**: Dynamically injected brand knowledge for consistent messaging.
+### 🛡️ Enterprise Stability
+- **Conflict Fix**: Automatically clears webhooks on startup to prevent "409 Conflict" errors.
+- **Port Binding**: Built-in HTTP server for 24/7 uptime on Render/Railway.
+- **Intelligent Presence**: 
+  - **🟢 Online**: Bot is silent. You handle all chats.
+  - **🟡 Busy**: AI assists while you are busy.
+  - **🔴 Away**: AI handles everything while you are offline.
 
 ---
 
@@ -28,7 +31,7 @@ _A premium, production-ready Telegram AI Assistant for the "Salman Dev" brand. T
 - **Runtime**: Node.js (Latest LTS)
 - **Framework**: Telegraf.js
 - **Database**: MongoDB (Mongoose)
-- **AI API**: OpenRouter (Strictly Free Models)
+- **AI API**: OpenRouter (Strictly Verified Free Models)
 - **Server**: Built-in HTTP for health checks
 
 ---
@@ -61,7 +64,7 @@ npm start
 
 ## 🤖 Admin Command Center
 
-- `/start` - 👑 Launch the assistant
+- `/start` - 👑 Launch the elite dashboard
 - `/help` - 📖 View user guide
 - `/update_memory` - 📝 Update brand intel
 - `/add_product` - 🛍️ Add new asset
