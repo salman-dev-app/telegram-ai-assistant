@@ -1,0 +1,32 @@
+{
+  "name": "telegram-ai-assistant",
+  "version": "1.0.0",
+  "description": "Production-ready Telegram AI Assistant for Salman Dev - Human-like group assistant with multi-model AI, MongoDB, and intelligent conversation handling",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "ai",
+    "assistant",
+    "openrouter",
+    "mongodb"
+  ],
+  "author": "Salman Dev",
+  "license": "MIT",
+  "dependencies": {
+    "telegraf": "^4.16.3",
+    "mongoose": "^8.1.1",
+    "axios": "^1.6.7",
+    "dotenv": "^16.4.1",
+    "winston": "^3.11.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
