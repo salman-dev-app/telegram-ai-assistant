@@ -4,14 +4,15 @@ import { logger } from '../utils/logger.js';
 
 export class GeminiAI {
   constructor() {
-    // Use the same key from config or a new one if provided
+    // Use the same key from config
     this.genAI = new GoogleGenerativeAI(config.openRouter.apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Updated to the latest and most powerful free model: gemini-2.0-flash
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
   }
 
   async generateResponse(prompt, userLanguage = 'english') {
     try {
-      logger.info(`Attempting AI request with Google Gemini (Free Tier)`);
+      logger.info(`Attempting AI request with Google Gemini 2.0 Flash`);
       
       const systemPrompt = this.getSystemPrompt(userLanguage);
       
@@ -31,7 +32,7 @@ export class GeminiAI {
         throw new Error('Empty response from Gemini');
       }
 
-      logger.info(`Gemini response generated successfully`);
+      logger.info(`Gemini 2.0 Flash response generated successfully`);
       return aiResponse;
 
     } catch (error) {

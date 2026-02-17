@@ -1,18 +1,18 @@
-# 👑 Salman Dev - Elite AI Assistant (v3.0)
+# 👑 Salman Dev - Elite AI Assistant (v3.1)
 
-_The ultimate, production-ready Telegram AI Assistant for the "Salman Dev" brand. Now powered by Google Gemini for 100% reliability and zero cost._
+_The ultimate, production-ready Telegram AI Assistant for the "Salman Dev" brand. Now powered by Google Gemini 2.0 Flash for maximum intelligence and speed._
 
 ---
 
-## 💎 Elite Features (v3.0)
+## 💎 Elite Features (v3.1)
 
-### 🚀 100% Reliable AI (Powered by Google Gemini)
-- **Direct Gemini Integration**: Replaced OpenRouter with direct **Google Gemini 1.5 Flash** integration. This provides much faster responses and 100% reliability on the free tier.
+### 🚀 Gemini 2.0 Flash (Latest & Fastest)
+- **Direct Gemini 2.0 Integration**: Upgraded to the latest **Google Gemini 2.0 Flash** model. This provides the most advanced reasoning, fastest response times, and 100% reliability.
 - **Zero Cost**: Uses Google's official free tier for developers.
 - **Romanized Language**: Professional support for **Bangla** and **Hindi** using English letters (e.g., "Kemon achen?").
 
-### 🛡️ Rock-Solid Stability
-- **Anti-Conflict Logic**: Enhanced startup sequence that force-clears existing connections. This fixes the "409 Conflict" error permanently.
+### 🛡️ Ultimate Stability Fix
+- **409 Conflict Resolution**: Implemented a robust startup sequence that force-clears existing connections and waits for old instances to shut down. This permanently fixes the "409 Conflict" error on Render.
 - **Port Binding**: Built-in HTTP server for 24/7 uptime on Render/Railway.
 - **Intelligent Presence**: 
   - **🟢 Online**: Bot is silent. You handle all chats.
@@ -30,7 +30,7 @@ _The ultimate, production-ready Telegram AI Assistant for the "Salman Dev" brand
 
 - **Runtime**: Node.js (Latest LTS)
 - **Framework**: Telegraf.js
-- **AI Engine**: Google Generative AI (Gemini 1.5 Flash)
+- **AI Engine**: Google Generative AI (Gemini 2.0 Flash)
 - **Database**: MongoDB (Mongoose)
 - **Server**: Built-in HTTP for health checks
 

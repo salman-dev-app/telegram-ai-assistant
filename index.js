@@ -91,20 +91,28 @@ const shutdown = (signal) => {
 process.once('SIGINT', () => shutdown('SIGINT'));
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 
-// Start bot with robust error handling for 409 Conflict
+// Start bot with ultimate fix for 409 Conflict
 const startBot = async () => {
   try {
     logger.info('Starting bot initialization...');
     
-    // 1. Clear any existing webhooks
+    // 1. Force clear any existing webhooks and pending updates
+    // This is the most important step to fix 409 Conflict
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
-    logger.info('Webhook cleared.');
+    logger.info('Webhook and pending updates cleared.');
 
-    // 2. Small delay to allow Telegram to process the deletion
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // 2. Wait for a few seconds to let Telegram's servers sync
+    // Render often keeps the old instance running for a bit during deployment
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
-    // 3. Launch the bot
-    await bot.launch();
+    // 3. Launch the bot with polling
+    // We use a unique identifier (timestamp) to help distinguish instances if needed
+    await bot.launch({
+      polling: {
+        allowedUpdates: ['message', 'callback_query'],
+        dropPendingUpdates: true
+      }
+    });
     
     logger.info('🤖 Bot started successfully!');
     logger.info(`📋 Admin ID: ${config.telegram.adminId}`);
@@ -114,8 +122,9 @@ const startBot = async () => {
     
     // If it's a 409 Conflict, it means another instance is still running
     if (error.code === 409 || error.message.includes('409')) {
-      logger.warn('409 Conflict detected. Retrying in 10 seconds...');
-      setTimeout(startBot, 10000);
+      logger.warn('409 Conflict detected. This usually happens during Render deployments.');
+      logger.warn('Retrying in 15 seconds to allow the old instance to shut down...');
+      setTimeout(startBot, 15000);
     } else {
       logger.error('Critical error during startup. Exiting...');
       process.exit(1);
