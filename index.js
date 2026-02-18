@@ -7,6 +7,8 @@ import { isAdmin } from './middleware/auth.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.js';
 import { AdminController } from './controllers/adminController.js';
 import { MessageController } from './controllers/messageController.js';
+import { BrandMemory } from './database/models/BrandMemory.js';
+import { Product } from './database/models/Product.js';
 
 // Validate environment variables
 if (!config.telegram.botToken) {
@@ -35,6 +37,20 @@ const bot = new Telegraf(config.telegram.botToken);
 // Connect to database
 await connectDatabase();
 
+// --- CLEAR MEMORY AS REQUESTED ---
+const clearMemory = async () => {
+  try {
+    logger.info('Clearing brand memory and products as requested...');
+    await BrandMemory.deleteMany({});
+    await Product.deleteMany({});
+    logger.info('Memory cleared successfully.');
+  } catch (error) {
+    logger.error('Error clearing memory:', error);
+  }
+};
+// Uncomment the line below if you want to clear memory on every restart
+// await clearMemory();
+
 // Error handling
 bot.catch((err, ctx) => {
   logger.error('Bot error:', err);
@@ -55,7 +71,7 @@ bot.command('list_products', isAdmin, AdminController.handleListProducts);
 bot.command('restart', isAdmin, async (ctx) => {
   await ctx.reply('🔄 *System Reboot Initiated...*\nShutting down and restarting bot instance.', { parse_mode: 'Markdown' });
   logger.info('Admin requested manual restart.');
-  process.exit(0); // Render will automatically restart the container
+  process.exit(0);
 });
 
 // Callbacks - User Actions
@@ -97,7 +113,7 @@ server.listen(PORT, '0.0.0.0', () => {
   logger.info(`🌐 Health check server listening on port ${PORT}`);
 });
 
-// Self-pinging mechanism to prevent Render sleep (if not using a separate pinger)
+// Self-pinging mechanism to prevent Render sleep
 setInterval(() => {
   const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
   if (url.startsWith('http')) {
@@ -107,7 +123,7 @@ setInterval(() => {
       logger.error(`Self-ping error: ${err.message}`);
     });
   }
-}, 10 * 60 * 1000); // Every 10 minutes
+}, 10 * 60 * 1000);
 
 // Graceful shutdown
 const shutdown = (signal) => {
@@ -122,7 +138,7 @@ const shutdown = (signal) => {
 process.once('SIGINT', () => shutdown('SIGINT'));
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 
-// Start bot with ultimate fix for 409 Conflict
+// Start bot with robust error handling for 409 Conflict
 const startBot = async () => {
   try {
     logger.info('Starting bot initialization...');

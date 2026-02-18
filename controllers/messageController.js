@@ -81,26 +81,16 @@ export class MessageController {
 
   static async sendContactCard(ctx) {
     try {
+      // Simplified to only show Telegram link as requested
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.url('💬 Telegram Chat', 'https://t.me/Otakuosenpai')]
+      ]);
+
       await ctx.reply(
-        "Connect with Salman Dev using the options below:",
+        "Connect with Salman Dev using the option below:",
         {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "📁 GitHub Profile", url: "https://github.com/salman-dev-app" },
-                { text: "📦 All Repositories", url: "https://github.com/salman-dev-app?tab=repositories" }
-              ],
-              [
-                { text: "💬 Telegram Chat", url: "https://t.me/Otakuosenpai" }
-              ],
-              [
-                { text: "📞 WhatsApp Contact", url: "https://wa.me/8801840933137" }
-              ],
-              [
-                { text: "✉️ Send Email", url: "mailto:mdsalmanhelp@gmail.com" }
-              ]
-            ]
-          },
+          parse_mode: 'Markdown',
+          ...keyboard,
           reply_to_message_id: ctx.message?.message_id
         }
       );
@@ -220,7 +210,7 @@ Welcome to the elite digital assistant for **Salman Dev**. I am engineered to pr
           Markup.button.callback('🛠 Admin Panel', 'admin_menu')
         ],
         [
-          Markup.button.callback('📞 Contact Info', 'contact_card')
+          Markup.button.url('💬 Telegram Chat', 'https://t.me/Otakuosenpai')
         ]
       ]);
 
