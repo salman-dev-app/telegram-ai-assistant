@@ -6,11 +6,9 @@ export class GroqAI {
   constructor() {
     this.apiKey = config.openRouter.apiKey; // Reusing the key from config
     this.baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-    // Using high-performance production models from Groq
     this.models = [
       'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'qwen-2.5-32b'
+      'llama-3.1-8b-instant'
     ];
   }
 
@@ -43,7 +41,7 @@ export class GroqAI {
             'Authorization': `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json'
           },
-          timeout: 10000 // Groq is extremely fast, 10s is plenty
+          timeout: 10000
         }
       );
 
@@ -60,7 +58,6 @@ export class GroqAI {
       const errorMessage = error.response?.data?.error?.message || error.message;
       logger.error(`Groq request failed with ${currentModel}: ${errorMessage}`);
       
-      // Try next model if it's a rate limit or server error
       if (retryCount < this.models.length - 1) {
         logger.info(`Falling back to next Groq model...`);
         return this.generateResponse(prompt, userLanguage, retryCount + 1);
@@ -72,27 +69,27 @@ export class GroqAI {
 
   getSystemPrompt(language) {
     const languageInstructions = {
-      bangla: 'You MUST respond in Romanized Bangla (Bangla words written in English letters/alphabet). Example: "Kemon achen? Ami apnar ki shahajjo korte pari?"',
-      hindi: 'You MUST respond in Romanized Hindi (Hindi words written in English letters/alphabet). Example: "Kaise hain aap? Main aapki kya madad kar sakta hoon?"',
+      bangla: `
+        CRITICAL RULE: You MUST respond in BANGLISH (Bengali language written using English letters).
+        - Do NOT use Bengali Unicode characters/script.
+        - Use Romanized Bengali only.
+        - Example: "Apnake kivabe sahajjo korte pari?"
+        - Tone: Natural, conversational, short (1-2 sentences).
+        - Examples: "Salman Dev ekhon offline achen.", "Apni chaile message rekhe jete paren.", "Ektu wait korun, ami check kortesi."
+      `,
+      hindi: 'You MUST respond in Romanized Hindi (Hindi words written in English letters). Example: "Kaise hain aap? Main aapki kya madad kar sakta hoon?"',
       english: 'You will respond in English.'
     };
 
     return `You are a professional digital assistant for Salman Dev, a tech entrepreneur and developer.
 
 Your role:
-- Assist potential clients in a friendly, human-like manner
-- Explain services and products clearly and concisely
-- Keep conversations engaging and natural
-- NEVER sound robotic or like ChatGPT
-- Keep responses VERY SHORT (1-2 sentences maximum)
-- Be helpful but redirect sales confirmations to Salman Dev
-- Act like a real human business assistant
-
-Communication style:
-- Casual but professional
-- Warm and approachable
-- Brief and to the point
-- Natural conversation flow
+- Assist potential clients in a friendly, human-like manner.
+- Explain services and products clearly and concisely.
+- Keep conversations engaging and natural.
+- NEVER sound robotic or like ChatGPT.
+- Keep responses VERY SHORT (1-2 sentences maximum).
+- Act like a real human business assistant.
 
 ${languageInstructions[language] || languageInstructions.english}
 

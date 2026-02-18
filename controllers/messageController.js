@@ -32,6 +32,12 @@ export class MessageController {
         return MessageController.showLanguageSelection(ctx);
       }
 
+      // Check for contact/portfolio/links request
+      const lowerMsg = message.toLowerCase();
+      if (lowerMsg.includes('contact') || lowerMsg.includes('portfolio') || lowerMsg.includes('link') || lowerMsg.includes('github') || lowerMsg.includes('whatsapp') || lowerMsg.includes('email') || lowerMsg.includes('salman dev')) {
+        return MessageController.sendContactCard(ctx);
+      }
+
       // Check for spam
       const isSpam = await UserService.checkSpam(user.telegramId, message);
       if (isSpam) {
@@ -42,7 +48,7 @@ export class MessageController {
       // Add message to user history
       await UserService.addUserMessage(user.telegramId, message);
 
-      // Simulate typing delay (human-like behavior)
+      // Simulate typing delay
       await MessageController.simulateTyping(ctx);
 
       // Get products
@@ -57,7 +63,7 @@ export class MessageController {
         user.language
       );
 
-      // Update user context with summary
+      // Update user context
       const contextSummary = `${message.slice(0, 100)} -> ${aiResponse.slice(0, 100)}`;
       await UserService.updateUserContext(user.telegramId, contextSummary);
 
@@ -73,11 +79,41 @@ export class MessageController {
     }
   }
 
+  static async sendContactCard(ctx) {
+    try {
+      await ctx.reply(
+        "Connect with Salman Dev using the options below:",
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "📁 GitHub Profile", url: "https://github.com/salman-dev-app" },
+                { text: "📦 All Repositories", url: "https://github.com/salman-dev-app?tab=repositories" }
+              ],
+              [
+                { text: "💬 Telegram Chat", url: "https://t.me/Otakuosenpai" }
+              ],
+              [
+                { text: "📞 WhatsApp Contact", url: "https://wa.me/8801840933137" }
+              ],
+              [
+                { text: "✉️ Send Email", url: "mailto:mdsalmanhelp@gmail.com" }
+              ]
+            ]
+          },
+          reply_to_message_id: ctx.message?.message_id
+        }
+      );
+    } catch (error) {
+      logger.error('Error in sendContactCard:', error);
+    }
+  }
+
   static async showLanguageSelection(ctx) {
     try {
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback('🇧🇩 Bangla', 'lang_bangla'),
+          Markup.button.callback('🇧🇩 Banglish', 'lang_bangla'),
           Markup.button.callback('🇮🇳 Hindi', 'lang_hindi'),
           Markup.button.callback('🇬🇧 English', 'lang_english')
         ]
@@ -123,7 +159,7 @@ export class MessageController {
       await UserService.setUserLanguage(userId, language);
 
       const confirmMessages = {
-        bangla: '✅ *Bhasha set kora hoyeche:* Bangla\n\nEkhon ami apnake shahajjo korte prostut! 🚀',
+        bangla: '✅ *Bhasha set kora hoyeche:* Banglish\n\nEkhon ami apnake shahajjo korte prostut! 🚀',
         hindi: '✅ *Bhasha set ho gayi hai:* Hindi\n\nAb main aapki madad ke liye taiyaar hoon! 🚀',
         english: '✅ *Language set:* English\n\nI am now ready to assist you! 🚀'
       };
@@ -182,6 +218,9 @@ Welcome to the elite digital assistant for **Salman Dev**. I am engineered to pr
         [
           Markup.button.callback('🌐 Language', 'lang_selection'),
           Markup.button.callback('🛠 Admin Panel', 'admin_menu')
+        ],
+        [
+          Markup.button.callback('📞 Contact Info', 'contact_card')
         ]
       ]);
 
@@ -238,6 +277,7 @@ Contact **Salman Dev** for high-priority matters.
 🚦 \`/status\` - Presence Control
 📊 \`/view_memory\` - System Stats
 📜 \`/list_products\` - Asset Catalog
+🔄 \`/restart\` - System Reboot
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 *Select an action or use commands.*
@@ -247,6 +287,9 @@ Contact **Salman Dev** for high-priority matters.
         [
           Markup.button.callback('🚦 Status Control', 'status_menu'),
           Markup.button.callback('📊 System Stats', 'view_memory_cb')
+        ],
+        [
+          Markup.button.callback('🔄 System Restart', 'restart_bot')
         ],
         [Markup.button.callback('🏠 Back to Dashboard', 'main_menu')]
       ]);

@@ -1,28 +1,28 @@
-# 👑 Salman Dev - Elite AI Assistant (v4.0)
+# 👑 Salman Dev - Elite AI Assistant (v5.0)
 
-_The ultimate, production-ready Telegram AI Assistant for the "Salman Dev" brand. Now powered by Groq for lightning-fast, reliable AI responses._
+_The ultimate, production-ready Telegram AI Assistant for the "Salman Dev" brand. Now with Banglish support, unified contact cards, and 100% uptime optimization._
 
 ---
 
-## 💎 Elite Features (v4.0)
+## 💎 Elite Features (v5.0)
 
-### 🚀 Powered by Groq (Ultra-Fast AI)
-- **Llama 3.3 70B Integration**: Replaced Gemini with **Groq**, the world's fastest AI inference engine. This provides near-instant responses and 100% reliability.
-- **Zero Cost**: Uses Groq's generous free tier for developers.
-- **Romanized Language**: Professional support for **Bangla** and **Hindi** using English letters (e.g., "Kemon achen?").
+### 🚀 Banglish Language Support
+- **Strict Banglish Rules**: The bot now communicates in **BANGLISH** (Bengali language written using English letters).
+- **No Bengali Script**: Prevents Unicode errors and ensures a consistent conversational tone.
+- **Natural Tone**: Short, conversational, and human-like responses.
 
-### 🛡️ Rock-Solid Stability
-- **Anti-Conflict Logic**: Enhanced startup sequence that force-clears existing connections and waits for old instances to shut down. This fixes the "409 Conflict" error permanently.
-- **Port Binding**: Built-in HTTP server for 24/7 uptime on Render/Railway.
-- **Intelligent Presence**: 
-  - **🟢 Online**: Bot is silent. You handle all chats.
-  - **🟡 Busy**: AI assists while you are busy.
-  - **🔴 Away**: AI handles everything while you are offline.
+### 📇 Unified Contact Card
+- **Structured Interface**: Whenever a user asks for contact info, links, or portfolio, the bot sends a professional **Inline Keyboard** card.
+- **One-Click Access**: Direct buttons for GitHub, WhatsApp, Telegram, and Email.
+
+### 🛡️ 100% Uptime & Stability
+- **Anti-Sleep Mechanism**: Built-in self-pinging to keep the bot alive on Render's free tier.
+- **Admin Restart**: A new `/restart` command and button allow the admin to reboot the bot instance directly from Telegram.
+- **409 Conflict Resolution**: Enhanced startup sequence force-clears existing connections.
 
 ### 🎮 Fully Interactive UI
 - **One-Click Controls**: Manage your status (Online, Busy, Away) with a single click.
 - **Seamless Navigation**: Entirely button-driven interface for Products, Help, and Language selection.
-- **Elite Layouts**: Modern, structured messages with professional dividers and premium icons.
 
 ---
 
@@ -30,9 +30,9 @@ _The ultimate, production-ready Telegram AI Assistant for the "Salman Dev" brand
 
 - **Runtime**: Node.js (Latest LTS)
 - **Framework**: Telegraf.js
-- **AI Engine**: Groq (Llama 3.3 70B & Llama 3.1 8B)
+- **AI Engine**: Groq (Llama 3.3 70B)
 - **Database**: MongoDB (Mongoose)
-- **Server**: Built-in HTTP for health checks
+- **Server**: Built-in HTTP for health checks and uptime.
 
 ---
 
@@ -57,6 +57,7 @@ ADMIN_TELEGRAM_ID="your_id"
 OPENROUTER_API_KEY="your_groq_api_key" # Put your Groq key here
 MONGODB_URI="your_mongodb_uri"
 PORT=3000
+RENDER_EXTERNAL_URL="https://your-app-name.onrender.com" # Optional for self-ping
 ```
 
 ### 4. Run
@@ -69,10 +70,10 @@ npm start
 ## 🤖 Admin Command Center
 
 - `/start` - 👑 Launch the elite dashboard
-- `/help` - 📖 View user guide
+- `/restart` - 🔄 System Reboot (Admin Only)
+- `/status` - 🚦 Presence control
 - `/update_memory` - 📝 Update brand intel
 - `/add_product` - 🛍️ Add new asset
-- `/status` - 🚦 Presence control
 - `/view_memory` - 📊 System stats
 - `/list_products` - 📜 Asset catalog
 

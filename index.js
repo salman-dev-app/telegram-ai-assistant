@@ -51,32 +51,63 @@ bot.command('status', isAdmin, AdminController.handleStatus);
 bot.command('view_memory', isAdmin, AdminController.handleViewMemory);
 bot.command('list_products', isAdmin, AdminController.handleListProducts);
 
+// Admin Restart Command
+bot.command('restart', isAdmin, async (ctx) => {
+  await ctx.reply('🔄 *System Reboot Initiated...*\nShutting down and restarting bot instance.', { parse_mode: 'Markdown' });
+  logger.info('Admin requested manual restart.');
+  process.exit(0); // Render will automatically restart the container
+});
+
 // Callbacks - User Actions
 bot.action('main_menu', MessageController.handleStart);
 bot.action('help_menu', MessageController.handleHelp);
 bot.action('view_products', MessageController.handleListProducts);
 bot.action('lang_selection', MessageController.showLanguageSelection);
 bot.action(/^lang_/, MessageController.handleLanguageSelection);
+bot.action('contact_card', MessageController.sendContactCard);
 
 // Callbacks - Admin Actions
 bot.action('admin_menu', isAdmin, MessageController.handleAdminMenu);
 bot.action('status_menu', isAdmin, AdminController.handleStatus);
 bot.action(/^status_/, isAdmin, AdminController.handleStatusCallback);
 bot.action('view_memory_cb', isAdmin, AdminController.handleViewMemory);
+bot.action('restart_bot', isAdmin, async (ctx) => {
+  await ctx.answerCbQuery('🔄 Restarting System...');
+  await ctx.reply('🔄 *System Reboot Initiated...*\nShutting down and restarting bot instance.', { parse_mode: 'Markdown' });
+  logger.info('Admin requested manual restart via button.');
+  process.exit(0);
+});
 
 // Message handling with rate limiting
 bot.on('text', rateLimitMiddleware, MessageController.handleMessage);
 
-// Simple HTTP server for Render port binding
+// Simple HTTP server for Render port binding & Uptime Monitoring
 const PORT = process.env.PORT || 3000;
 const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Bot is running\n');
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('OK');
+  } else {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot is running\n');
+  }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   logger.info(`🌐 Health check server listening on port ${PORT}`);
 });
+
+// Self-pinging mechanism to prevent Render sleep (if not using a separate pinger)
+setInterval(() => {
+  const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+  if (url.startsWith('http')) {
+    http.get(`${url}/health`, (res) => {
+      logger.info(`Self-ping status: ${res.statusCode}`);
+    }).on('error', (err) => {
+      logger.error(`Self-ping error: ${err.message}`);
+    });
+  }
+}, 10 * 60 * 1000); // Every 10 minutes
 
 // Graceful shutdown
 const shutdown = (signal) => {
@@ -97,16 +128,13 @@ const startBot = async () => {
     logger.info('Starting bot initialization...');
     
     // 1. Force clear any existing webhooks and pending updates
-    // This is the most important step to fix 409 Conflict
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
     logger.info('Webhook and pending updates cleared.');
 
     // 2. Wait for a few seconds to let Telegram's servers sync
-    // Render often keeps the old instance running for a bit during deployment
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // 3. Launch the bot with polling
-    // We use a unique identifier (timestamp) to help distinguish instances if needed
     await bot.launch({
       polling: {
         allowedUpdates: ['message', 'callback_query'],
@@ -120,10 +148,8 @@ const startBot = async () => {
   } catch (error) {
     logger.error('Failed to start bot:', error);
     
-    // If it's a 409 Conflict, it means another instance is still running
     if (error.code === 409 || error.message.includes('409')) {
-      logger.warn('409 Conflict detected. This usually happens during Render deployments.');
-      logger.warn('Retrying in 15 seconds to allow the old instance to shut down...');
+      logger.warn('409 Conflict detected. Retrying in 15 seconds...');
       setTimeout(startBot, 15000);
     } else {
       logger.error('Critical error during startup. Exiting...');
