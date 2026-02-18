@@ -1,7 +1,10 @@
 import { Markup } from 'telegraf';
 import { BrandMemory } from '../database/models/BrandMemory.js';
 import { Product } from '../database/models/Product.js';
+import { User } from '../database/models/User.js';
 import { logger } from '../utils/logger.js';
+import fs from 'fs';
+import path from 'path';
 
 export class AdminController {
   static async handleUpdateMemory(ctx) {
@@ -195,6 +198,7 @@ export class AdminController {
     try {
       const memory = await BrandMemory.getMemory();
       const products = await Product.find({ isActive: true });
+      const userCount = await User.countDocuments();
 
       const statusEmoji = {
         online: '🟢',
@@ -203,22 +207,25 @@ export class AdminController {
       };
 
       const message = `
-📊 *SYSTEM STATS*
+📊 *SYSTEM ANALYTICS & STATS*
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
 🚦 *Current Status:* ${statusEmoji[memory.status]} **${memory.status.toUpperCase()}**
+👥 *Total Users:* **${userCount}**
+📦 *Active Assets:* **${products.length}**
 
 👤 *Brand Identity:*
 ${memory.getFormattedMemory()}
-
-📦 *Active Assets:* (${products.length})
-${products.map(p => `• ${p.name} - ${p.price}`).join('\n') || 'No assets added yet'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 🕒 *Last Updated:* ${memory.lastUpdated.toLocaleString()}
       `.trim();
 
       const keyboard = Markup.inlineKeyboard([
+        [
+          Markup.button.callback('📢 Broadcast', 'broadcast_menu'),
+          Markup.button.callback('🛡️ Backup', 'backup_system')
+        ],
         [Markup.button.callback('🛠 Admin Menu', 'admin_menu')],
         [Markup.button.callback('🏠 Main Menu', 'main_menu')]
       ]);
@@ -263,6 +270,80 @@ ${products.map(p => `• ${p.name} - ${p.price}`).join('\n') || 'No assets added
     } catch (error) {
       logger.error('Error in handleListProducts:', error);
       ctx.reply('❌ *Error:* Failed to retrieve products. Please try again.');
+    }
+  }
+
+  // --- NEW: BROADCAST SYSTEM ---
+  static async handleBroadcast(ctx) {
+    const text = ctx.message.text.replace('/broadcast', '').trim();
+    if (!text) {
+      return ctx.reply(
+        '📢 *BROADCAST SYSTEM*\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+        'Usage: `/broadcast [your message]`\n\n' +
+        'This will send a message to ALL users who have talked to the bot.',
+        { parse_mode: 'Markdown' }
+      );
+    }
+
+    try {
+      const users = await User.find({ isBlocked: false });
+      let successCount = 0;
+      let failCount = 0;
+
+      await ctx.reply(`📢 *Starting broadcast to ${users.length} users...*`, { parse_mode: 'Markdown' });
+
+      for (const user of users) {
+        try {
+          await ctx.telegram.sendMessage(user.telegramId, `📢 *BROADCAST FROM SALMAN DEV*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${text}`, { parse_mode: 'Markdown' });
+          successCount++;
+          await new Promise(resolve => setTimeout(resolve, 50)); // Avoid rate limits
+        } catch (err) {
+          failCount++;
+          logger.error(`Broadcast failed for user ${user.telegramId}: ${err.message}`);
+        }
+      }
+
+      await ctx.reply(`✅ *Broadcast Complete!*\n\n🚀 Success: ${successCount}\n❌ Failed: ${failCount}`, { parse_mode: 'Markdown' });
+    } catch (error) {
+      logger.error('Error in handleBroadcast:', error);
+      ctx.reply('❌ *Error:* Failed to complete broadcast.');
+    }
+  }
+
+  // --- NEW: AUTO-BACKUP SYSTEM ---
+  static async handleBackup(ctx) {
+    try {
+      const memory = await BrandMemory.find();
+      const products = await Product.find();
+      const users = await User.find();
+
+      const backupData = {
+        timestamp: new Date().toISOString(),
+        brandMemory: memory,
+        products: products,
+        users: users.map(u => ({
+          telegramId: u.telegramId,
+          username: u.username,
+          language: u.language
+        }))
+      };
+
+      const fileName = `backup_${new Date().toISOString().split('T')[0]}.json`;
+      const filePath = path.join(process.cwd(), fileName);
+      
+      fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2));
+
+      await ctx.replyWithDocument({ source: filePath, filename: fileName }, {
+        caption: '🛡️ *SYSTEM BACKUP COMPLETE*\n\nThis file contains all your brand memory, products, and user data.',
+        parse_mode: 'Markdown'
+      });
+
+      fs.unlinkSync(filePath); // Clean up
+      if (ctx.callbackQuery) await ctx.answerCbQuery('Backup sent!');
+    } catch (error) {
+      logger.error('Error in handleBackup:', error);
+      ctx.reply('❌ *Error:* Failed to create backup.');
     }
   }
 }

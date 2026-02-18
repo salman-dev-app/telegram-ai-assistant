@@ -37,20 +37,6 @@ const bot = new Telegraf(config.telegram.botToken);
 // Connect to database
 await connectDatabase();
 
-// --- CLEAR MEMORY AS REQUESTED ---
-const clearMemory = async () => {
-  try {
-    logger.info('Clearing brand memory and products as requested...');
-    await BrandMemory.deleteMany({});
-    await Product.deleteMany({});
-    logger.info('Memory cleared successfully.');
-  } catch (error) {
-    logger.error('Error clearing memory:', error);
-  }
-};
-// Uncomment the line below if you want to clear memory on every restart
-// await clearMemory();
-
 // Error handling
 bot.catch((err, ctx) => {
   logger.error('Bot error:', err);
@@ -66,6 +52,8 @@ bot.command('add_product', isAdmin, AdminController.handleAddProduct);
 bot.command('status', isAdmin, AdminController.handleStatus);
 bot.command('view_memory', isAdmin, AdminController.handleViewMemory);
 bot.command('list_products', isAdmin, AdminController.handleListProducts);
+bot.command('broadcast', isAdmin, AdminController.handleBroadcast);
+bot.command('backup', isAdmin, AdminController.handleBackup);
 
 // Admin Restart Command
 bot.command('restart', isAdmin, async (ctx) => {
@@ -87,6 +75,11 @@ bot.action('admin_menu', isAdmin, MessageController.handleAdminMenu);
 bot.action('status_menu', isAdmin, AdminController.handleStatus);
 bot.action(/^status_/, isAdmin, AdminController.handleStatusCallback);
 bot.action('view_memory_cb', isAdmin, AdminController.handleViewMemory);
+bot.action('backup_system', isAdmin, AdminController.handleBackup);
+bot.action('broadcast_menu', isAdmin, async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.reply('📢 *BROADCAST SYSTEM*\n\nUsage: `/broadcast [your message]`\n\nThis will send a message to ALL users who have talked to the bot.', { parse_mode: 'Markdown' });
+});
 bot.action('restart_bot', isAdmin, async (ctx) => {
   await ctx.answerCbQuery('🔄 Restarting System...');
   await ctx.reply('🔄 *System Reboot Initiated...*\nShutting down and restarting bot instance.', { parse_mode: 'Markdown' });

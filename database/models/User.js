@@ -40,6 +40,11 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  productClicks: {
+    type: Map,
+    of: Number,
+    default: {}
+  },
   isBlocked: {
     type: Boolean,
     default: false
@@ -93,6 +98,14 @@ userSchema.methods.addMessage = function(content) {
   }
   
   this.messageCount++;
+  return this.save();
+};
+
+// Method to track product click
+userSchema.methods.trackProductClick = function(productId) {
+  const currentCount = this.productClicks.get(productId) || 0;
+  this.productClicks.set(productId, currentCount + 1);
+  this.lastInteraction = Date.now();
   return this.save();
 };
 
