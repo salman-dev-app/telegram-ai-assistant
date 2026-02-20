@@ -125,6 +125,43 @@ export class AdminController {
     }
   }
 
+  static async handleRemoveProduct(ctx) {
+    try {
+      const text = ctx.message.text.replace('/remove_product', '').trim();
+      
+      if (!text) {
+        return ctx.reply(
+          '🗑️ *REMOVE ASSET*\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+          'Usage: `/remove_product [Product ID]`\n\n' +
+          '💡 *Tip:* Use `/list_products` to find the ID of the asset you want to remove.',
+          { parse_mode: 'Markdown' }
+        );
+      }
+
+      const product = await Product.findById(text);
+      
+      if (!product) {
+        return ctx.reply('❌ *Error:* Product not found. Please check the ID.');
+      }
+
+      await Product.findByIdAndDelete(text);
+      
+      logger.info(`Product removed by admin: ${product.name} (${text})`);
+      
+      ctx.reply(
+        `✅ *Asset Removed Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📦 *Name:* ${product.name}\n` +
+        `🆔 *ID:* \`${text}\``,
+        { parse_mode: 'Markdown' }
+      );
+
+    } catch (error) {
+      logger.error('Error in handleRemoveProduct:', error);
+      ctx.reply('❌ *Error:* Failed to remove product. Make sure you provided a valid MongoDB ID.');
+    }
+  }
+
   static async handleStatus(ctx) {
     try {
       const keyboard = Markup.inlineKeyboard([

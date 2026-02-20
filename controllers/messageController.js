@@ -2,10 +2,10 @@ import { Markup } from 'telegraf';
 import { UserService } from '../services/userService.js';
 import { BrandMemory } from '../database/models/BrandMemory.js';
 import { Product } from '../database/models/Product.js';
-import { GroqAI } from '../ai/groq.js';
+import { OpenRouterAI } from '../ai/openrouter.js';
 import { logger } from '../utils/logger.js';
 
-const ai = new GroqAI();
+const ai = new OpenRouterAI();
 
 export class MessageController {
   static async handleMessage(ctx) {
@@ -26,6 +26,8 @@ export class MessageController {
 
       const user = await UserService.getOrCreateUser(ctx);
       const message = ctx.message.text;
+
+      if (!message) return;
 
       // Check if user needs language selection
       if (!user.languageSelected) {
@@ -264,6 +266,7 @@ Contact **Salman Dev** for high-priority matters.
 
 📝 \`/update_memory\` - Brand Intel
 📦 \`/add_product\` - New Asset
+🗑 \`/remove_product\` - Delete Asset
 🚦 \`/status\` - Presence Control
 📊 \`/view_memory\` - System Stats
 📜 \`/list_products\` - Asset Catalog

@@ -1,0 +1,26 @@
+name: telegram-ai-assistant
+services:
+  - name: bot
+    type: worker
+    image: node:18-slim
+    build:
+      type: git
+      command: npm install && npm start
+    env:
+      - key: TELEGRAM_BOT_TOKEN
+        type: secret
+      - key: ADMIN_TELEGRAM_ID
+        type: secret
+      - key: OPENROUTER_API_KEY
+        type: secret
+      - key: MONGODB_URI
+        type: secret
+      - key: PORT
+        value: "8000"
+    health_checks:
+      - http:
+          path: /health
+          port: 8000
+    scaling:
+      min: 1
+      max: 1

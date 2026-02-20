@@ -108,6 +108,7 @@ Remember: You're representing a real person's brand. Be authentic, helpful, and 
 
   async generateResponseWithContext(userMessage, brandMemory, products, userContext, userLanguage) {
     const contextPrompt = `
+Brand Memory:
 ${brandMemory}
 
 Available Products:

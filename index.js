@@ -49,6 +49,7 @@ bot.command('help', MessageController.handleHelp);
 // Admin commands
 bot.command('update_memory', isAdmin, AdminController.handleUpdateMemory);
 bot.command('add_product', isAdmin, AdminController.handleAddProduct);
+bot.command('remove_product', isAdmin, AdminController.handleRemoveProduct);
 bot.command('status', isAdmin, AdminController.handleStatus);
 bot.command('view_memory', isAdmin, AdminController.handleViewMemory);
 bot.command('list_products', isAdmin, AdminController.handleListProducts);
