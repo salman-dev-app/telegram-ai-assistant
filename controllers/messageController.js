@@ -37,6 +37,9 @@ import { TemplateController } from './templateController.js';
 import { GroupController } from './groupController.js';
 import { DashboardManager } from '../utils/dashboardManager.js';
 import { AIResponseFormatter } from '../utils/aiResponseFormatter.js';
+import { StrictResponseFormatter } from '../utils/strictResponseFormatter.js';
+import { ProductBrowser } from '../utils/productBrowser.js';
+import { VoiceMessageHandler } from '../utils/voiceMessageHandler.js';
 
 const ai = new GroqAI();
 
@@ -234,11 +237,28 @@ export class MessageController {
       // Track general interaction
       await CommandStats.trackCommand('general_message', user.telegramId, 'General Message');
 
-      // Reply to the user's message
-      await ctx.reply(aiResponse, {
-        parse_mode: 'Markdown',
-        reply_to_message_id: ctx.message.message_id
-      });
+      // ===== CHECK FOR VOICE MESSAGE REQUEST =====
+      const voiceRequest = VoiceMessageHandler.detectVoiceRequest(message);
+      if (voiceRequest) {
+        await CommandStats.trackCommand('voice_request', user.telegramId, 'Voice Request');
+        // Send voice message response
+        await VoiceMessageHandler.handleVoiceRequest(ctx, aiResponse);
+        // Also send text with buttons
+        const formatted = StrictResponseFormatter.formatChatResponse(aiResponse);
+        await ctx.reply(formatted.text, {
+          parse_mode: 'Markdown',
+          ...formatted.keyboard,
+          reply_to_message_id: ctx.message.message_id
+        });
+      } else {
+        // ===== STRICT FORMATTER: ENSURE ALL RESPONSES HAVE BUTTONS =====
+        const formatted = StrictResponseFormatter.formatChatResponse(aiResponse);
+        await ctx.reply(formatted.text, {
+          parse_mode: 'Markdown',
+          ...formatted.keyboard,
+          reply_to_message_id: ctx.message.message_id
+        });
+      }
 
       logger.info(`Response sent to user ${user.telegramId}`);
 
@@ -465,8 +485,9 @@ Contact **Salman Dev** for urgent matters.
 
   static async handleListProducts(ctx) {
     try {
-      await CommandStats.trackCommand('view_templates', ctx.from.id, 'View Templates');
-      await DashboardManager.renderTemplatesPanel(ctx);
+      await CommandStats.trackCommand('view_products', ctx.from.id, 'View Products');
+      // Use ProductBrowser instead of DashboardManager
+      await ProductBrowser.showProductList(ctx, 0);
     } catch (error) {
       logger.error('Error in handleListProducts:', error);
     }

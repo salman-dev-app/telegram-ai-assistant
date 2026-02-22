@@ -17,6 +17,9 @@ import { TemplateController } from './controllers/templateController.js';
 import { GroupController } from './controllers/groupController.js';
 import { DashboardManager } from './utils/dashboardManager.js';
 import { AIResponseFormatter } from './utils/aiResponseFormatter.js';
+import { ProductBrowser } from './utils/productBrowser.js';
+import { VoiceMessageHandler } from './utils/voiceMessageHandler.js';
+import { StrictResponseFormatter } from './utils/strictResponseFormatter.js';
 
 // Validate environment variables
 if (!config.telegram.botToken) {
@@ -366,3 +369,66 @@ const startBot = async () => {
 };
 
 startBot();
+
+// ===== PRODUCT BROWSER CALLBACKS =====
+bot.action('prod_list_0', async (ctx) => {
+  await ProductBrowser.showProductList(ctx, 0);
+});
+
+bot.action(/^prod_list_(\d+)$/, async (ctx) => {
+  const page = parseInt(ctx.match[1]);
+  await ProductBrowser.showProductList(ctx, page);
+});
+
+bot.action(/^prod_select_/, async (ctx) => {
+  const productId = ctx.callbackQuery.data.replace('prod_select_', '');
+  await ProductBrowser.showProductDetails(ctx, productId);
+});
+
+bot.action(/^prod_desc_/, async (ctx) => {
+  const productId = ctx.callbackQuery.data.replace('prod_desc_', '');
+  await ProductBrowser.showProductDescription(ctx, productId);
+});
+
+bot.action(/^prod_files_/, async (ctx) => {
+  const productId = ctx.callbackQuery.data.replace('prod_files_', '');
+  await ProductBrowser.showProductFiles(ctx, productId);
+});
+
+bot.action(/^prod_file_/, async (ctx) => {
+  const data = ctx.callbackQuery.data.replace('prod_file_', '').split('_');
+  const productId = data[0];
+  const fileIndex = parseInt(data[1]);
+  await ProductBrowser.showFileDetails(ctx, productId, fileIndex);
+});
+
+// ===== VOICE MESSAGE CALLBACKS =====
+bot.action('send_voice_again', async (ctx) => {
+  await ctx.answerCbQuery('🎤 Please send your next message to convert to voice');
+});
+
+bot.action('voice_lang', async (ctx) => {
+  const keyboard = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('🇬🇧 English', 'voice_lang_en'),
+      Markup.button.callback('🇧🇩 Bengali', 'voice_lang_bn')
+    ],
+    [
+      Markup.button.callback('🇮🇳 Hindi', 'voice_lang_hi'),
+      Markup.button.callback('🏠 Back', 'dash_main')
+    ]
+  ]);
+  await ctx.editMessageText('🎤 *Select Language*\n\nChoose the language for voice response:', {
+    parse_mode: 'Markdown',
+    ...keyboard
+  });
+  await ctx.answerCbQuery();
+});
+
+bot.action(/^voice_lang_/, async (ctx) => {
+  const lang = ctx.callbackQuery.data.replace('voice_lang_', '');
+  ctx.session = ctx.session || {};
+  ctx.session.voiceLanguage = lang;
+  await ctx.answerCbQuery(`✅ Language set to ${lang}`);
+});
+
