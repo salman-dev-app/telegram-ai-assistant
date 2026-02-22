@@ -35,6 +35,8 @@ import {
 } from '../utils/helpers.js';
 import { TemplateController } from './templateController.js';
 import { GroupController } from './groupController.js';
+import { DashboardManager } from '../utils/dashboardManager.js';
+import { AIResponseFormatter } from '../utils/aiResponseFormatter.js';
 
 const ai = new GroqAI();
 
@@ -358,53 +360,7 @@ export class MessageController {
   static async handleStart(ctx) {
     try {
       await CommandStats.trackCommand('start_command', ctx.from.id, 'Start Command');
-
-      const welcomeMessage = `
-👑 *SALMAN DEV AI ASSISTANT* 👑
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-Welcome to the premium AI assistant for **Salman Dev**. I provide intelligent support and brand representation.
-
-✨ *What I Can Do:*
-💎 Answer product & service queries
-🎵 Detect music requests (auto-play)
-🌤️ Check weather (auto-detect city)
-🌐 Translate messages (auto-translate)
-🖼️ Generate images (auto-create)
-😂 Tell jokes & quotes
-📊 Group management
-⭐ User feedback & ratings
-❓ FAQ & help
-🛡️ 24/7 Support
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-*Choose an option below to get started.*
-      `.trim();
-
-      const keyboard = Markup.inlineKeyboard([
-        [
-          Markup.button.callback('📦 Products', 'view_products'),
-          Markup.button.callback('📖 Help', 'help_menu')
-        ],
-        [
-          Markup.button.callback('🌐 Language', 'lang_selection'),
-          Markup.button.callback('👤 Profile', 'my_profile')
-        ],
-        [
-          Markup.button.callback('❓ FAQ', 'faq_menu'),
-          Markup.button.callback('🛠 Admin', 'admin_menu')
-        ],
-        [
-          Markup.button.url('💬 Contact', 'https://t.me/Otakuosenpai')
-        ]
-      ]);
-
-      if (ctx.callbackQuery) {
-        await ctx.editMessageText(welcomeMessage, { parse_mode: 'Markdown', ...keyboard });
-        await ctx.answerCbQuery();
-      } else {
-        await ctx.reply(welcomeMessage, { parse_mode: 'Markdown', ...keyboard });
-      }
+      await DashboardManager.renderMainDashboard(ctx);
     } catch (error) {
       logger.error('Error in handleStart:', error);
     }
@@ -510,8 +466,7 @@ Contact **Salman Dev** for urgent matters.
   static async handleListProducts(ctx) {
     try {
       await CommandStats.trackCommand('view_templates', ctx.from.id, 'View Templates');
-      // Redirect to template categories (clean nested button UI)
-      await TemplateController.showCategories(ctx);
+      await DashboardManager.renderTemplatesPanel(ctx);
     } catch (error) {
       logger.error('Error in handleListProducts:', error);
     }

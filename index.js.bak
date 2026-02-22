@@ -15,8 +15,6 @@ import { Template } from './database/models/Template.js';
 import { GroupSettings } from './database/models/GroupSettings.js';
 import { TemplateController } from './controllers/templateController.js';
 import { GroupController } from './controllers/groupController.js';
-import { DashboardManager } from './utils/dashboardManager.js';
-import { AIResponseFormatter } from './utils/aiResponseFormatter.js';
 
 // Validate environment variables
 if (!config.telegram.botToken) {
@@ -234,7 +232,6 @@ ${product.features.length > 0 ? `âœ¨ *Features:*\n${product.features.map(f => `â
 
 
 
-cat /tmp/dashboard_callbacks.js
 // ===== TEMPLATE CALLBACKS =====
 bot.action('template_categories', TemplateController.showCategories);
 bot.action(/^cat_/, TemplateController.showCategoryTemplates);
