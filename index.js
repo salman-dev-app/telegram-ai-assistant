@@ -11,6 +11,10 @@ import { BrandMemory } from './database/models/BrandMemory.js';
 import { Product } from './database/models/Product.js';
 import { User } from './database/models/User.js';
 import { CommandStats } from './database/models/CommandStats.js';
+import { Template } from './database/models/Template.js';
+import { GroupSettings } from './database/models/GroupSettings.js';
+import { TemplateController } from './controllers/templateController.js';
+import { GroupController } from './controllers/groupController.js';
 
 // Validate environment variables
 if (!config.telegram.botToken) {
@@ -226,24 +230,63 @@ ${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `�
   }
 });
 
-// ===== GROUP MEMBER JOIN HANDLER =====
+
+
+// ===== TEMPLATE CALLBACKS =====
+bot.action('template_categories', TemplateController.showCategories);
+bot.action(/^cat_/, TemplateController.showCategoryTemplates);
+bot.action(/^tmpl_nav_/, TemplateController.navigateTemplates);
+bot.action(/^tmpl_desc_/, TemplateController.showTemplateDescription);
+bot.action(/^tmpl_demo_/, TemplateController.showTemplateDemo);
+bot.action(/^file_info_/, TemplateController.showFileInfo);
+
+// ===== GROUP MANAGEMENT CALLBACKS =====
+bot.action('view_rules', GroupController.showRules);
+bot.action('rules_acknowledged', GroupController.acknowledgeRules);
+bot.action('group_stats', GroupController.showGroupStats);
+bot.action('group_settings', GroupController.showGroupSettings);
+bot.action('toggle_moderation', async (ctx) => {
+  await GroupController.toggleSetting(ctx, 'moderation');
+});
+bot.action('toggle_antispam', async (ctx) => {
+  await GroupController.toggleSetting(ctx, 'antispam');
+});
+bot.action('toggle_antilinks', async (ctx) => {
+  await GroupController.toggleSetting(ctx, 'antilinks');
+});
+bot.action('toggle_anticaps', async (ctx) => {
+  await GroupController.toggleSetting(ctx, 'anticaps');
+});
+
+// ===== MESSAGE HANDLING WITH RATE LIMITING (AUTO-TRIGGERS + AUTO-MODERATION) =====
+bot.on('text', rateLimitMiddleware, async (ctx) => {
+  // Auto-moderation check
+  const allowed = await GroupController.checkAutoModeration(ctx);
+  if (!allowed) return;
+  
+  // Update message count
+  await GroupController.updateMessageCount(ctx);
+  
+  // Handle message
+  await MessageController.handleMessage(ctx);
+});
+
+// ===== NEW MEMBER HANDLER =====
 bot.on('new_chat_members', async (ctx) => {
   try {
-    const brandMemory = await BrandMemory.getMemory();
+    // Initialize group if needed
+    await GroupController.initializeGroup(ctx);
     
+    // Welcome new members
     for (const member of ctx.message.new_chat_members) {
       if (!member.is_bot) {
-        const welcomeMsg = `👋 Welcome *${member.first_name}* to the group!\n\nI'm Salman Dev's AI assistant. Feel free to ask anything! 😊\n\nUse /help to see what I can do.`;
-        await ctx.reply(welcomeMsg, { parse_mode: 'Markdown' });
+        await GroupController.welcomeNewMember(ctx);
       }
     }
   } catch (error) {
     logger.error('Error in new_chat_members handler:', error);
   }
 });
-
-// ===== MESSAGE HANDLING WITH RATE LIMITING (AUTO-TRIGGERS) =====
-bot.on('text', rateLimitMiddleware, MessageController.handleMessage);
 
 // ===== HTTP SERVER FOR HEALTH CHECKS =====
 const PORT = process.env.PORT || 3000;

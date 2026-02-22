@@ -33,6 +33,8 @@ import {
   extractKeywords,
   logActivity
 } from '../utils/helpers.js';
+import { TemplateController } from './templateController.js';
+import { GroupController } from './groupController.js';
 
 const ai = new GroqAI();
 
@@ -507,57 +509,9 @@ Contact **Salman Dev** for urgent matters.
 
   static async handleListProducts(ctx) {
     try {
-      const products = await Product.find({ isActive: true });
-
-      if (products.length === 0) {
-        const noProductsMsg = '📦 No products available at the moment.';
-        const keyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Dashboard', 'main_menu')]]);
-        if (ctx.callbackQuery) {
-          await ctx.editMessageText(noProductsMsg, { parse_mode: 'Markdown', ...keyboard });
-          return ctx.answerCbQuery();
-        }
-        return ctx.reply(noProductsMsg, { parse_mode: 'Markdown', ...keyboard });
-      }
-
-      // Send each product as a separate FULLY INTERACTIVE card with inline buttons
-      for (const product of products) {
-        const productMsg = `
-📦 *${product.name}*
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-📝 ${product.description}
-
-💰 *Price:* ${product.price}
-
-${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `• ${f}`).join('\n')}\n` : ''}
-
-🆔 ID: \`${product._id}\`
-        `.trim();
-
-        const productButtons = [
-          [
-            Markup.button.url('🔗 View Demo', product.demoUrl || 'https://t.me/Otakuosenpai'),
-            Markup.button.url('🛒 Buy Now', product.contactUrl || 'https://t.me/Otakuosenpai')
-          ]
-        ];
-
-        productButtons.push([Markup.button.callback('ℹ️ More Info', `product_${product._id}`)]);
-
-        const keyboard = Markup.inlineKeyboard(productButtons);
-
-        await ctx.reply(productMsg, {
-          parse_mode: 'Markdown',
-          ...keyboard
-        });
-
-        // Track product view
-        product.viewCount = (product.viewCount || 0) + 1;
-        await product.save();
-      }
-
-      const backKeyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Back', 'main_menu')]]);
-      await ctx.reply('━━━━━━━━━━━━━━━━━━━━━━━━\n\n✅ End of products list.', { ...backKeyboard });
-
+      await CommandStats.trackCommand('view_templates', ctx.from.id, 'View Templates');
+      // Redirect to template categories (clean nested button UI)
+      await TemplateController.showCategories(ctx);
     } catch (error) {
       logger.error('Error in handleListProducts:', error);
     }
