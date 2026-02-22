@@ -47,14 +47,14 @@ SELECT WHAT YOU NEED:
         await ctx.editMessageText(dashboardText, {
           parse_mode: 'Markdown',
           ...keyboard
-        });
-        await ctx.answerCbQuery();
+        }).catch(err => logger.error('Error editing message in renderMainDashboard:', err));
+        await ctx.answerCbQuery().catch(() => {});
       } else {
         const msg = await ctx.reply(dashboardText, {
           parse_mode: 'Markdown',
           ...keyboard
-        });
-        DashboardManager.dashboardState[userId] = msg.message_id;
+        }).catch(err => logger.error('Error replying in renderMainDashboard:', err));
+        if (msg) DashboardManager.dashboardState[userId] = msg.message_id;
       }
     } catch (error) {
       console.error('Error in renderMainDashboard:', error);

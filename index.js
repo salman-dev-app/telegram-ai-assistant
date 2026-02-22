@@ -132,13 +132,15 @@ bot.action('weather_tomorrow', async (ctx) => {
 
 
 bot.action('another_joke', async (ctx) => {
-  const joke = require('./utils/helpers.js').getRandomJoke();
+  const { getRandomJoke } = await import('./utils/helpers.js');
+  const joke = getRandomJoke();
   await ctx.editMessageText(`😂 ${joke}`);
   await ctx.answerCbQuery();
 });
 
 bot.action('another_quote', async (ctx) => {
-  const quote = require('./utils/helpers.js').getQuoteOfTheDay();
+  const { getQuoteOfTheDay } = await import('./utils/helpers.js');
+  const quote = getQuoteOfTheDay();
   await ctx.editMessageText(`💡 *Quote of the Day:*\n\n"${quote}"`, { parse_mode: 'Markdown' });
   await ctx.answerCbQuery();
 });
@@ -217,10 +219,11 @@ ${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `�
 🆔 ID: \`${product._id}\`
     `.trim();
 
-    const keyboard = require('telegraf').Markup.inlineKeyboard([
-      [require('telegraf').Markup.button.url('🔗 View Demo', product.demoUrl || 'https://t.me/Otakuosenpai')],
-      [require('telegraf').Markup.button.url('💬 Contact', product.contactUrl || 'https://t.me/Otakuosenpai')],
-      [require('telegraf').Markup.button.callback('⬅️ Back', 'view_products')]
+    const { Markup } = await import('telegraf');
+    const keyboard = Markup.inlineKeyboard([
+      [Markup.button.url('🔗 View Demo', product.demoUrl || 'https://t.me/Otakuosenpai')],
+      [Markup.button.url('💬 Contact', product.contactUrl || 'https://t.me/Otakuosenpai')],
+      [Markup.button.callback('⬅️ Back', 'view_products')]
     ]);
 
     await ctx.editMessageText(detailMsg, {
@@ -333,6 +336,15 @@ const shutdown = (signal) => {
 
 process.once('SIGINT', () => shutdown('SIGINT'));
 process.once('SIGTERM', () => shutdown('SIGTERM'));
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+  process.exit(1);
+});
 
 // ===== START BOT =====
 const startBot = async () => {

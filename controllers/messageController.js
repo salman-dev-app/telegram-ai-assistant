@@ -44,6 +44,7 @@ const ai = new GroqAI();
 export class MessageController {
   static async handleMessage(ctx) {
     try {
+      if (!ctx.message || !ctx.chat) return;
       // Only respond in groups
       if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') {
         return;
@@ -223,7 +224,7 @@ export class MessageController {
         parse_mode: 'Markdown',
         ...formatted.keyboard,
         reply_to_message_id: ctx.message.message_id
-      });
+      }).catch(err => logger.error('Error sending AI response:', err));
 
       logger.info(`Response sent to user ${user.telegramId}`);
 

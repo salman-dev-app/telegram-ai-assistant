@@ -424,16 +424,18 @@ ${memory.getFormattedMemory()}
       };
 
       const fileName = `backup_${new Date().toISOString().split('T')[0]}.json`;
-      const filePath = path.join(process.cwd(), fileName);
+      const backupDir = path.join(process.cwd(), 'backups');
+      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+      const filePath = path.join(backupDir, fileName);
       
       fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2));
 
       await ctx.replyWithDocument({ source: filePath, filename: fileName }, {
         caption: '🛡️ *SYSTEM BACKUP COMPLETE*\n\nThis file contains all your data.',
         parse_mode: 'Markdown'
-      });
+      }).catch(err => logger.error('Error sending backup document:', err));
 
-      fs.unlinkSync(filePath);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       if (ctx.callbackQuery) await ctx.answerCbQuery('Backup sent!');
     } catch (error) {
       logger.error('Error in handleBackup:', error);
