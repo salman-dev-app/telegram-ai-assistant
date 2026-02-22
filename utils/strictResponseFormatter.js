@@ -82,14 +82,7 @@ export class StrictResponseFormatter {
         ]
       ],
 
-      // ===== TRANSLATION RESPONSES =====
-      translate: [
-        [
-          Markup.button.callback('🔄 Translate Again', 'translate_again'),
-          Markup.button.callback('🌐 Change Language', 'dash_lang')
-        ],
-        [Markup.button.callback('🏠 Home', 'dash_main')]
-      ],
+
 
       // ===== IMAGE GENERATION RESPONSES =====
       image: [
@@ -116,7 +109,9 @@ export class StrictResponseFormatter {
           Markup.button.callback('✍️ Share', 'share_quote')
         ],
         [Markup.button.callback('🏠 Home', 'dash_main')]
-   === CONTACT RESPONSES =====
+      ],
+
+      // ===== CONTACT RESPONSES =====
       contact: [
         [
           Markup.button.url('💬 Telegram', 'https://t.me/Otakuosenpai'),
@@ -239,23 +234,7 @@ ${weatherData}
     return { text, keyboard };
   }
 
-  // ===== FORMAT TRANSLATION RESPONSE =====
-  static formatTranslationResponse(originalText, translatedText, targetLanguage) {
-    const text = `
-🌐 *Translation to ${targetLanguage}*
-━━━━━━━━━━━━━━━━━━━━━━━━
 
-📝 *Original:*
-${originalText}
-
-🔤 *Translated:*
-${translatedText}
-    `.trim();
-
-    const keyboard = this.getButtonsForIntent('translate');
-
-    return { text, keyboard };
-  }
 
   // ===== FORMAT IMAGE RESPONSE =====
   static formatImageResponse(prompt) {

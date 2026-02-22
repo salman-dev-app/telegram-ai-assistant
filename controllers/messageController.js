@@ -10,8 +10,6 @@ import {
   detectMusicRequest,
   detectWeatherRequest,
   getWeather,
-  detectTranslationRequest,
-  translateMessage,
   detectImageRequest,
   generateImage,
   detectIntent,
@@ -113,25 +111,7 @@ export class MessageController {
         });
       }
 
-      // ===== AUTO-TRIGGER: TRANSLATION REQUEST =====
-      const translationReq = detectTranslationRequest(message);
-      if (translationReq) {
-        await CommandStats.trackCommand('translation_request', user.telegramId, 'Translation');
-        await user.addMessage(message);
-        await ctx.sendChatAction('typing');
-        const translated = await translateMessage(translationReq.text, translationReq.language);
-        
-        const keyboard = Markup.inlineKeyboard([
-          [Markup.button.callback('🔄 Translate Again', 'translate_again')],
-          [Markup.button.callback('🏠 Menu', 'main_menu')]
-        ]);
-        
-        return ctx.reply(`🌐 *Translation to ${translationReq.language}:*\n\n${translated}`, {
-          parse_mode: 'Markdown',
-          ...keyboard,
-          reply_to_message_id: ctx.message.message_id
-        });
-      }
+
 
       // ===== AUTO-TRIGGER: IMAGE GENERATION =====
       const imagePrompt = detectImageRequest(message);
@@ -386,7 +366,7 @@ export class MessageController {
 
 🎵 *Music:* Just say "play [song name]"
 🌤️ *Weather:* Just ask "weather in [city]"
-🌐 *Translate:* Just say "translate to [language]: [text]"
+
 🖼️ *Images:* Just say "generate: [description]"
 😂 *Jokes:* Just ask "tell me a joke"
 💡 *Quotes:* Just ask for "inspiration"

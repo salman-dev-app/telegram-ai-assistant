@@ -488,7 +488,7 @@ Choose admin function:
 
 🎵 Music: Just say "play [song]"
 🌤️ Weather: Just say "weather in [city]"
-🌐 Translate: Say "translate to [lang]: [text]"
+
 🖼️ Image: Say "generate: [description]"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

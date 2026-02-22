@@ -54,15 +54,6 @@ Just type naturally - the bot will automatically detect and respond:
 
 **Response:** Shows real-time weather with temperature, humidity, wind
 
-### 🌐 Translation
-- "translate to [language]: [text]"
-- "translate [language]: [text]"
-- "translate this to [language]: [text]"
-- "[language] to [language]: [text]"
-- "translate [language] [text]"
-
-**Response:** Translates text to English, Bangla, or Hindi
-
 ### 🖼️ Image Generation
 - "generate: [description]"
 - "generate image: [description]"
@@ -155,10 +146,6 @@ All responses use inline buttons - NO plain text:
 - 🔄 **Another City** - Check different city
 - 📅 **Tomorrow** - Check tomorrow's weather
 
-### Translation Responses
-- 🔄 **Translate Again** - Ready for another translation
-- 🏠 **Menu** - Back to main menu
-
 ### Joke/Quote Responses
 - 😂 **Another Joke** - Get another joke
 - 💡 **Another Quote** - Get another quote
@@ -250,6 +237,7 @@ User selects language on first interaction.
 
 ## Setup Instructions
 
+
 1. **Add Commands to BotFather:**
    - Open [@BotFather](https://t.me/BotFather)
    - Send `/setcommands`
@@ -264,12 +252,12 @@ User selects language on first interaction.
 
 3. **Bot Description:**
    ```
-   Advanced AI Assistant with music, weather, translation, image generation, and group management. Auto-detects requests - no commands needed!
+   Advanced AI Assistant with music, weather, image generation, and group management. Auto-detects requests - no commands needed!
    ```
 
 4. **Bot Short Description:**
    ```
-   Smart AI with music, weather, translation & more
+   Smart AI with music, weather & more
    ```
 
 ---

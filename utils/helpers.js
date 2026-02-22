@@ -34,7 +34,7 @@ export const UIButtons = {
   myProfile: '👤 My Profile',
   faq: '❓ FAQ',
   weather: '🌤️ Weather',
-  translate: '🌐 Translate',
+
   
   // Ratings
   rate1: '⭐ 1 Star',
@@ -65,7 +65,7 @@ export const UIButtons = {
   
   // Image & Translation
   generateImage: '🖼️ Generate Image',
-  translateMsg: '🌐 Translate Message',
+
   
   // Misc
   searchProduct: '🔍 Search Product',
@@ -169,57 +169,7 @@ export async function getWeather(city, apiKey) {
 // =============================================
 // TRANSLATION HELPER - AUTO DETECTION
 // =============================================
-export async function translateMessage(text, targetLanguage) {
-  try {
-    const { default: axios } = await import('axios');
-    
-    const languageMap = {
-      'english': 'en',
-      'bangla': 'bn',
-      'bangla': 'bn',
-      'hindi': 'hi'
-    };
-    
-    const targetLang = languageMap[targetLanguage.toLowerCase()] || 'en';
-    
-    const response = await axios.get(
-      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLang}`,
-      { timeout: 8000 }
-    );
-    
-    if (response.data.responseStatus === 200) {
-      return response.data.responseData.translatedText;
-    }
-    
-    return `❌ Translation failed. Please try again.`;
-  } catch (error) {
-    return `❌ Translation service unavailable. Please try again later.`;
-  }
-}
 
-export function detectTranslationRequest(message) {
-  const lower = message.toLowerCase();
-  
-  const patterns = [
-    /translate\s+(?:to\s+)?(.+?):\s*(.+)/i,
-    /translate\s+(.+?):\s*(.+)/i,
-    /translate\s+this\s+to\s+(.+?):\s*(.+)/i,
-    /(.+?)\s+to\s+(.+?):\s*(.+)/i,
-    /translate\s+(?:this\s+)?(.+?)\s+to\s+(.+)/i,
-  ];
-  
-  for (const pattern of patterns) {
-    const match = message.match(pattern);
-    if (match) {
-      return {
-        language: match[match.length - 2].trim(),
-        text: match[match.length - 1].trim()
-      };
-    }
-  }
-  
-  return null;
-}
 
 // =============================================
 // IMAGE GENERATION HELPER - AUTO DETECTION
@@ -542,8 +492,7 @@ export function detectIntent(message) {
   // Weather request
   if (detectWeatherRequest(message)) return 'weather';
   
-  // Translation request
-  if (detectTranslationRequest(message)) return 'translate';
+
   
   // Image generation
   if (detectImageRequest(message)) return 'image';

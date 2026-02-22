@@ -129,9 +129,7 @@ bot.action('weather_tomorrow', async (ctx) => {
   await ctx.answerCbQuery('Say "tomorrow weather in [city]"');
 });
 
-bot.action('translate_again', async (ctx) => {
-  await ctx.answerCbQuery('Say "translate to [language]: [text]"');
-});
+
 
 bot.action('another_joke', async (ctx) => {
   const joke = require('./utils/helpers.js').getRandomJoke();

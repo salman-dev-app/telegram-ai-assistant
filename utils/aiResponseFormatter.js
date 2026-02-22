@@ -41,13 +41,7 @@ export class AIResponseFormatter {
         ]
       ],
 
-      translate: [
-        [
-          Markup.button.callback('🔄 Translate Again', 'translate_again'),
-          Markup.button.callback('🌐 Change Language', 'dash_lang')
-        ],
-        [Markup.button.callback('🏠 Menu', 'dash_main')]
-      ],
+
 
       image: [
         [
@@ -180,25 +174,7 @@ ${weatherData}
     return { text, keyboard: buttons };
   }
 
-  /**
-   * Format translation response with buttons
-   */
-  static formatTranslationResponse(originalText, translatedText, targetLanguage) {
-    const text = `
-🌐 *Translation to ${targetLanguage}*
-━━━━━━━━━━━━━━━━━━━━━━━━
 
-📝 *Original:*
-${originalText}
-
-🔤 *Translated:*
-${translatedText}
-    `.trim();
-
-    const buttons = this.getButtonsForIntent('translate');
-
-    return { text, keyboard: buttons };
-  }
 
   /**
    * Format image response with buttons
