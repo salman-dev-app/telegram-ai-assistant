@@ -146,16 +146,17 @@ bot.action('another_quote', async (ctx) => {
 });
 
 // ===== RATING CALLBACK =====
+bot.action('rate_bot', async (ctx) => {
   try {
-    const keyboard = require('telegraf').Markup.inlineKeyboard([
+    const keyboard = Markup.inlineKeyboard([
       [
-        require('telegraf').Markup.button.callback('⭐ 1', 'rate_1'),
-        require('telegraf').Markup.button.callback('⭐⭐ 2', 'rate_2'),
-        require('telegraf').Markup.button.callback('⭐⭐⭐ 3', 'rate_3')
+        Markup.button.callback('⭐ 1', 'rate_1'),
+        Markup.button.callback('⭐⭐ 2', 'rate_2'),
+        Markup.button.callback('⭐⭐⭐ 3', 'rate_3')
       ],
       [
-        require('telegraf').Markup.button.callback('⭐⭐⭐⭐ 4', 'rate_4'),
-        require('telegraf').Markup.button.callback('⭐⭐⭐⭐⭐ 5', 'rate_5')
+        Markup.button.callback('⭐⭐⭐⭐ 4', 'rate_4'),
+        Markup.button.callback('⭐⭐⭐⭐⭐ 5', 'rate_5')
       ]
     ]);
 
