@@ -2,6 +2,7 @@ import { Markup } from 'telegraf';
 import { BrandMemory } from '../database/models/BrandMemory.js';
 import { Product } from '../database/models/Product.js';
 import { User } from '../database/models/User.js';
+import { CommandStats } from '../database/models/CommandStats.js';
 import { logger } from '../utils/logger.js';
 import fs from 'fs';
 import path from 'path';
@@ -16,6 +17,8 @@ import {
 export class AdminController {
   static async handleUpdateMemory(ctx) {
     try {
+      await CommandStats.trackCommand('update_memory', ctx.from.id, 'Update Memory');
+      
       const text = ctx.message.text.replace('/update_memory', '').trim();
       
       if (!text) {
@@ -79,6 +82,8 @@ export class AdminController {
 
   static async handleAddProduct(ctx) {
     try {
+      await CommandStats.trackCommand('add_product', ctx.from.id, 'Add Product');
+      
       const text = ctx.message.text.replace('/add_product', '').trim();
       
       if (!text) {
@@ -133,6 +138,8 @@ export class AdminController {
 
   static async handleRemoveProduct(ctx) {
     try {
+      await CommandStats.trackCommand('remove_product', ctx.from.id, 'Remove Product');
+      
       const text = ctx.message.text.replace('/remove_product', '').trim();
       
       if (!text) {
@@ -201,6 +208,8 @@ export class AdminController {
   static async handleStatusCallback(ctx) {
     try {
       const status = ctx.callbackQuery.data.replace('status_', '');
+      await CommandStats.trackCommand('status_change', ctx.from.id, `Status: ${status}`);
+      
       const memory = await BrandMemory.getMemory();
       memory.status = status;
       await memory.save();
@@ -239,6 +248,8 @@ export class AdminController {
 
   static async handleViewMemory(ctx) {
     try {
+      await CommandStats.trackCommand('view_memory', ctx.from.id, 'View Memory');
+      
       const memory = await BrandMemory.getMemory();
       const products = await Product.find({ isActive: true });
       const userCount = await User.countDocuments();
@@ -287,6 +298,8 @@ ${memory.getFormattedMemory()}
 
   static async handleListProducts(ctx) {
     try {
+      await CommandStats.trackCommand('list_products', ctx.from.id, 'List Products');
+      
       const products = await Product.find({ isActive: true });
 
       if (products.length === 0) {
@@ -316,19 +329,56 @@ ${memory.getFormattedMemory()}
     }
   }
 
-  static async handleBroadcast(ctx) {
-    const text = ctx.message.text.replace('/broadcast', '').trim();
-    if (!text) {
-      return ctx.reply(
-        '📢 *BROADCAST SYSTEM*\n' +
-        '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-        'Usage: `/broadcast [your message]`\n\n' +
-        'This will send a message to ALL users.',
-        { parse_mode: 'Markdown' }
-      );
-    }
-
+  // ===== NEW: COMMAND STATISTICS =====
+  static async handleCommandStats(ctx) {
     try {
+      await CommandStats.trackCommand('view_stats', ctx.from.id, 'View Stats');
+      
+      const topCommands = await CommandStats.getTopCommands(15);
+      
+      if (topCommands.length === 0) {
+        const keyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Back', 'admin_menu')]]);
+        return ctx.editMessageText('📈 No command statistics yet.', { ...keyboard });
+      }
+
+      let statsMsg = '📈 *COMMAND STATISTICS*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+      
+      for (let i = 0; i < topCommands.length; i++) {
+        const cmd = topCommands[i];
+        statsMsg += `${i + 1}. *${cmd.commandName}*\n   Total: ${cmd.count} | Users: ${cmd.users.length}\n\n`;
+      }
+
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('🔄 Refresh', 'command_stats')],
+        [Markup.button.callback('🏠 Back', 'admin_menu')]
+      ]);
+
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(statsMsg, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.answerCbQuery();
+      } else {
+        await ctx.reply(statsMsg, { parse_mode: 'Markdown', ...keyboard });
+      }
+    } catch (error) {
+      logger.error('Error in handleCommandStats:', error);
+    }
+  }
+
+  static async handleBroadcast(ctx) {
+    try {
+      await CommandStats.trackCommand('broadcast', ctx.from.id, 'Broadcast');
+      
+      const text = ctx.message.text.replace('/broadcast', '').trim();
+      if (!text) {
+        return ctx.reply(
+          '📢 *BROADCAST SYSTEM*\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+          'Usage: `/broadcast [your message]`\n\n' +
+          'This will send a message to ALL users.',
+          { parse_mode: 'Markdown' }
+        );
+      }
+
       const users = await User.find({ isBlocked: false });
       let successCount = 0;
       let failCount = 0;
@@ -355,6 +405,8 @@ ${memory.getFormattedMemory()}
 
   static async handleBackup(ctx) {
     try {
+      await CommandStats.trackCommand('backup', ctx.from.id, 'Backup');
+      
       const memory = await BrandMemory.find();
       const products = await Product.find();
       const users = await User.find();
@@ -389,9 +441,11 @@ ${memory.getFormattedMemory()}
     }
   }
 
-  // ===== NEW: GROUP MANAGEMENT =====
+  // ===== GROUP MANAGEMENT =====
   static async handleKickUser(ctx) {
     try {
+      await CommandStats.trackCommand('kick_user', ctx.from.id, 'Kick User');
+      
       const text = ctx.message.text.replace('/kick', '').trim();
       
       if (!text) {
@@ -414,6 +468,8 @@ ${memory.getFormattedMemory()}
 
   static async handleBanUser(ctx) {
     try {
+      await CommandStats.trackCommand('ban_user', ctx.from.id, 'Ban User');
+      
       const text = ctx.message.text.replace('/ban', '').trim();
       
       if (!text) {
@@ -436,6 +492,8 @@ ${memory.getFormattedMemory()}
 
   static async handleUnbanUser(ctx) {
     try {
+      await CommandStats.trackCommand('unban_user', ctx.from.id, 'Unban User');
+      
       const text = ctx.message.text.replace('/unban', '').trim();
       
       if (!text) {
@@ -458,6 +516,8 @@ ${memory.getFormattedMemory()}
 
   static async handlePromoteUser(ctx) {
     try {
+      await CommandStats.trackCommand('promote_user', ctx.from.id, 'Promote User');
+      
       const text = ctx.message.text.replace('/promote', '').trim();
       
       if (!text) {
@@ -478,9 +538,11 @@ ${memory.getFormattedMemory()}
     }
   }
 
-  // ===== NEW: FAQ MANAGEMENT =====
+  // ===== FAQ MANAGEMENT =====
   static async handleAddFAQ(ctx) {
     try {
+      await CommandStats.trackCommand('add_faq', ctx.from.id, 'Add FAQ');
+      
       const text = ctx.message.text.replace('/add_faq', '').trim();
       
       if (!text) {
@@ -517,6 +579,8 @@ ${memory.getFormattedMemory()}
 
   static async handleRemoveFAQ(ctx) {
     try {
+      await CommandStats.trackCommand('remove_faq', ctx.from.id, 'Remove FAQ');
+      
       const text = ctx.message.text.replace('/remove_faq', '').trim();
       
       if (!text) {

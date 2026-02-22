@@ -2,6 +2,7 @@ import { Markup } from 'telegraf';
 import { UserService } from '../services/userService.js';
 import { BrandMemory } from '../database/models/BrandMemory.js';
 import { Product } from '../database/models/Product.js';
+import { CommandStats } from '../database/models/CommandStats.js';
 import { GroqAI } from '../ai/groq.js';
 import { logger } from '../utils/logger.js';
 import {
@@ -22,7 +23,15 @@ import {
   banUser,
   unbanUser,
   restrictUser,
-  promoteModerator
+  promoteModerator,
+  getQuoteOfTheDay,
+  analyzeSentiment,
+  getTimeBasedGreeting,
+  getQuickReplies,
+  isSpamMessage,
+  filterProfanity,
+  extractKeywords,
+  logActivity
 } from '../utils/helpers.js';
 
 const ai = new GroqAI();
@@ -54,47 +63,73 @@ export class MessageController {
         return MessageController.showLanguageSelection(ctx);
       }
 
-      // ===== NEW: MUSIC REQUEST =====
+      // ===== AUTO-TRIGGER: MUSIC REQUEST =====
       const songName = detectMusicRequest(message);
       if (songName) {
+        await CommandStats.trackCommand('music_request', user.telegramId, 'Music Request');
         await user.addMessage(message);
         user.songsRequested = (user.songsRequested || 0) + 1;
         await user.save();
         
-        const musicMsg = `🎵 *Music Request Detected!*\n\nYou want to play: **${songName}**\n\nForward this to music bot or use:\n\`/play ${songName}\`\n\nOr tag the music bot in the group!`;
+        // Send formatted command to music bot
+        const musicMsg = `🎵 *Music Request Detected!*\n\nNow playing: **${songName}**\n\nCommand sent to music bot:\n\`/play ${songName}\``;
+        
+        const keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('🔄 Play Another', 'play_another')],
+          [Markup.button.callback('⏹️ Stop', 'stop_music')]
+        ]);
+        
         return ctx.reply(musicMsg, {
           parse_mode: 'Markdown',
+          ...keyboard,
           reply_to_message_id: ctx.message.message_id
         });
       }
 
-      // ===== NEW: WEATHER REQUEST =====
+      // ===== AUTO-TRIGGER: WEATHER REQUEST =====
       const city = detectWeatherRequest(message);
       if (city) {
+        await CommandStats.trackCommand('weather_request', user.telegramId, 'Weather Check');
         await user.addMessage(message);
         const weatherApiKey = process.env.WEATHER_API_KEY || null;
         const weatherInfo = await getWeather(city, weatherApiKey);
+        
+        const keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('🔄 Another City', 'check_weather')],
+          [Markup.button.callback('📅 Tomorrow', 'weather_tomorrow')]
+        ]);
+        
         return ctx.reply(weatherInfo, {
           parse_mode: 'Markdown',
+          ...keyboard,
           reply_to_message_id: ctx.message.message_id
         });
       }
 
-      // ===== NEW: TRANSLATION REQUEST =====
+      // ===== AUTO-TRIGGER: TRANSLATION REQUEST =====
       const translationReq = detectTranslationRequest(message);
       if (translationReq) {
+        await CommandStats.trackCommand('translation_request', user.telegramId, 'Translation');
         await user.addMessage(message);
         await ctx.sendChatAction('typing');
         const translated = await translateMessage(translationReq.text, translationReq.language);
+        
+        const keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('🔄 Translate Again', 'translate_again')],
+          [Markup.button.callback('🏠 Menu', 'main_menu')]
+        ]);
+        
         return ctx.reply(`🌐 *Translation to ${translationReq.language}:*\n\n${translated}`, {
           parse_mode: 'Markdown',
+          ...keyboard,
           reply_to_message_id: ctx.message.message_id
         });
       }
 
-      // ===== NEW: IMAGE GENERATION REQUEST =====
+      // ===== AUTO-TRIGGER: IMAGE GENERATION =====
       const imagePrompt = detectImageRequest(message);
       if (imagePrompt) {
+        await CommandStats.trackCommand('image_generation', user.telegramId, 'Image Generation');
         await user.addMessage(message);
         const imageApiKey = process.env.HUGGING_FACE_API_KEY || null;
         
@@ -119,11 +154,37 @@ export class MessageController {
         }
       }
 
-      // ===== NEW: JOKE REQUEST =====
+      // ===== AUTO-TRIGGER: JOKE REQUEST =====
       if (/joke|funny|laugh|haha|lol/.test(message.toLowerCase())) {
+        await CommandStats.trackCommand('joke_request', user.telegramId, 'Joke');
         await user.addMessage(message);
         const joke = getRandomJoke();
+        
+        const keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('😂 Another Joke', 'another_joke')],
+          [Markup.button.callback('🏠 Menu', 'main_menu')]
+        ]);
+        
         return ctx.reply(`😂 ${joke}`, {
+          ...keyboard,
+          reply_to_message_id: ctx.message.message_id
+        });
+      }
+
+      // ===== AUTO-TRIGGER: QUOTE REQUEST =====
+      if (/quote|inspiration|motivat|wisdom/.test(message.toLowerCase())) {
+        await CommandStats.trackCommand('quote_request', user.telegramId, 'Quote');
+        await user.addMessage(message);
+        const quote = getQuoteOfTheDay();
+        
+        const keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback('💡 Another Quote', 'another_quote')],
+          [Markup.button.callback('🏠 Menu', 'main_menu')]
+        ]);
+        
+        return ctx.reply(`💡 *Quote of the Day:*\n\n"${quote}"`, {
+          parse_mode: 'Markdown',
+          ...keyboard,
           reply_to_message_id: ctx.message.message_id
         });
       }
@@ -131,6 +192,7 @@ export class MessageController {
       // Check for contact/portfolio/links request
       const lowerMsg = message.toLowerCase();
       if (lowerMsg.includes('contact') || lowerMsg.includes('portfolio') || lowerMsg.includes('link') || lowerMsg.includes('github') || lowerMsg.includes('whatsapp') || lowerMsg.includes('email') || lowerMsg.includes('salman dev')) {
+        await CommandStats.trackCommand('contact_request', user.telegramId, 'Contact Request');
         return MessageController.sendContactCard(ctx);
       }
 
@@ -164,6 +226,9 @@ export class MessageController {
       // Update user context
       const contextSummary = `${message.slice(0, 100)} -> ${aiResponse.slice(0, 100)}`;
       await UserService.updateUserContext(user.telegramId, contextSummary);
+
+      // Track general interaction
+      await CommandStats.trackCommand('general_message', user.telegramId, 'General Message');
 
       // Reply to the user's message
       await ctx.reply(aiResponse, {
@@ -262,9 +327,10 @@ export class MessageController {
       }
 
       await UserService.setUserLanguage(userId, language);
+      await CommandStats.trackCommand('language_selection', userId, `Language: ${language}`);
 
       const confirmMessages = {
-        bangla: '✅ Language set to: Banglish\n\nEkhon ami apnake sahajjo korte prostut! 🚀',
+        bangla: '✅ Language set to: Bangla\n\nEkhon ami apnake sahajjo korte prostut! 🚀',
         hindi: '✅ Language set to: Hindi\n\nAb main aapki madad ke liye taiyaar hoon! 🚀',
         english: '✅ Language set to: English\n\nI am now ready to assist you! 🚀'
       };
@@ -289,6 +355,8 @@ export class MessageController {
 
   static async handleStart(ctx) {
     try {
+      await CommandStats.trackCommand('start_command', ctx.from.id, 'Start Command');
+
       const welcomeMessage = `
 👑 *SALMAN DEV AI ASSISTANT* 👑
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -297,12 +365,14 @@ Welcome to the premium AI assistant for **Salman Dev**. I provide intelligent su
 
 ✨ *What I Can Do:*
 💎 Answer product & service queries
-🎵 Detect music requests
-🌤️ Check weather
-🌐 Translate messages
-🖼️ Generate images
-😂 Tell jokes
+🎵 Detect music requests (auto-play)
+🌤️ Check weather (auto-detect city)
+🌐 Translate messages (auto-translate)
+🖼️ Generate images (auto-create)
+😂 Tell jokes & quotes
 📊 Group management
+⭐ User feedback & ratings
+❓ FAQ & help
 🛡️ 24/7 Support
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -340,6 +410,8 @@ Welcome to the premium AI assistant for **Salman Dev**. I provide intelligent su
 
   static async handleHelp(ctx) {
     try {
+      await CommandStats.trackCommand('help_command', ctx.from.id, 'Help Command');
+
       const helpMessage = `
 📖 *USER GUIDE*
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -349,11 +421,12 @@ Welcome to the premium AI assistant for **Salman Dev**. I provide intelligent su
 • I'll reply directly to your message
 • Ask about products, services, or anything else
 
-🎵 *Music:* Type "play [song name]"
-🌤️ *Weather:* Type "weather in [city]"
-🌐 *Translate:* Type "translate to [language]: [text]"
-🖼️ *Images:* Type "generate: [description]"
-😂 *Jokes:* Type "joke"
+🎵 *Music:* Just say "play [song name]"
+🌤️ *Weather:* Just ask "weather in [city]"
+🌐 *Translate:* Just say "translate to [language]: [text]"
+🖼️ *Images:* Just say "generate: [description]"
+😂 *Jokes:* Just ask "tell me a joke"
+💡 *Quotes:* Just ask for "inspiration"
 
 📞 *Contact:* Ask for "contact" or "portfolio"
 
@@ -392,12 +465,17 @@ Contact **Salman Dev** for urgent matters.
 📢 \`/broadcast\` - Send to all users
 🛡️ \`/backup\` - Download backup
 🔄 \`/restart\` - Restart bot
+📈 \`/stats\` - Command statistics
 
 👥 *Group Management:*
 \`/kick @user\` - Remove user
 \`/ban @user\` - Ban user
 \`/unban @user\` - Unban user
 \`/promote @user\` - Make moderator
+
+❓ *FAQ Management:*
+\`/add_faq [question] | [answer]\`
+\`/remove_faq [index]\`
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
       `.trim();
@@ -406,6 +484,9 @@ Contact **Salman Dev** for urgent matters.
         [
           Markup.button.callback('🚦 Status', 'status_menu'),
           Markup.button.callback('📊 Stats', 'view_memory_cb')
+        ],
+        [
+          Markup.button.callback('📈 Commands', 'command_stats')
         ],
         [
           Markup.button.callback('🔄 Restart', 'restart_bot')
@@ -438,7 +519,7 @@ Contact **Salman Dev** for urgent matters.
         return ctx.reply(noProductsMsg, { parse_mode: 'Markdown', ...keyboard });
       }
 
-      // Send each product as a separate message with inline buttons
+      // Send each product as a separate FULLY INTERACTIVE card with inline buttons
       for (const product of products) {
         const productMsg = `
 📦 *${product.name}*
@@ -454,14 +535,13 @@ ${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `�
         `.trim();
 
         const productButtons = [
-          [Markup.button.url('🔗 View Demo', product.demoUrl || 'https://t.me/Otakuosenpai')]
+          [
+            Markup.button.url('🔗 View Demo', product.demoUrl || 'https://t.me/Otakuosenpai'),
+            Markup.button.url('🛒 Buy Now', product.contactUrl || 'https://t.me/Otakuosenpai')
+          ]
         ];
 
-        if (product.contactUrl) {
-          productButtons.push([Markup.button.url('💬 Contact Seller', product.contactUrl)]);
-        }
-
-        productButtons.push([Markup.button.callback('📊 More Info', `product_${product._id}`)]);
+        productButtons.push([Markup.button.callback('ℹ️ More Info', `product_${product._id}`)]);
 
         const keyboard = Markup.inlineKeyboard(productButtons);
 
@@ -469,10 +549,14 @@ ${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `�
           parse_mode: 'Markdown',
           ...keyboard
         });
+
+        // Track product view
+        product.viewCount = (product.viewCount || 0) + 1;
+        await product.save();
       }
 
       const backKeyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Back', 'main_menu')]]);
-      await ctx.reply('━━━━━━━━━━━━━━━━━━━━━━━━\n\nEnd of products list.', { ...backKeyboard });
+      await ctx.reply('━━━━━━━━━━━━━━━━━━━━━━━━\n\n✅ End of products list.', { ...backKeyboard });
 
     } catch (error) {
       logger.error('Error in handleListProducts:', error);

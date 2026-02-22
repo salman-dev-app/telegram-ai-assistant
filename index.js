@@ -10,6 +10,7 @@ import { MessageController } from './controllers/messageController.js';
 import { BrandMemory } from './database/models/BrandMemory.js';
 import { Product } from './database/models/Product.js';
 import { User } from './database/models/User.js';
+import { CommandStats } from './database/models/CommandStats.js';
 
 // Validate environment variables
 if (!config.telegram.botToken) {
@@ -83,6 +84,7 @@ bot.action(/^lang_/, MessageController.handleLanguageSelection);
 bot.action('contact_card', MessageController.sendContactCard);
 bot.action('my_profile', MessageController.handleMyProfile);
 bot.action('faq_menu', MessageController.handleFAQ);
+bot.action('command_stats', isAdmin, AdminController.handleCommandStats);
 
 // ===== CALLBACKS - ADMIN ACTIONS =====
 bot.action('admin_menu', isAdmin, MessageController.handleAdminMenu);
@@ -101,8 +103,40 @@ bot.action('restart_bot', isAdmin, async (ctx) => {
   process.exit(0);
 });
 
-// ===== NEW: RATING CALLBACK =====
-bot.action('rate_bot', async (ctx) => {
+// ===== NEW: QUICK ACTION CALLBACKS =====
+bot.action('play_another', async (ctx) => {
+  await ctx.answerCbQuery('Ready for another song! Just say "play [song name]"');
+});
+
+bot.action('stop_music', async (ctx) => {
+  await ctx.answerCbQuery('Music stopped!');
+});
+
+bot.action('check_weather', async (ctx) => {
+  await ctx.answerCbQuery('Tell me the city name!');
+});
+
+bot.action('weather_tomorrow', async (ctx) => {
+  await ctx.answerCbQuery('Say "tomorrow weather in [city]"');
+});
+
+bot.action('translate_again', async (ctx) => {
+  await ctx.answerCbQuery('Say "translate to [language]: [text]"');
+});
+
+bot.action('another_joke', async (ctx) => {
+  const joke = require('./utils/helpers.js').getRandomJoke();
+  await ctx.editMessageText(`😂 ${joke}`);
+  await ctx.answerCbQuery();
+});
+
+bot.action('another_quote', async (ctx) => {
+  const quote = require('./utils/helpers.js').getQuoteOfTheDay();
+  await ctx.editMessageText(`💡 *Quote of the Day:*\n\n"${quote}"`, { parse_mode: 'Markdown' });
+  await ctx.answerCbQuery();
+});
+
+// ===== RATING CALLBACK =====
   try {
     const keyboard = require('telegraf').Markup.inlineKeyboard([
       [
@@ -126,7 +160,7 @@ bot.action('rate_bot', async (ctx) => {
   }
 });
 
-// ===== NEW: RATING HANDLERS =====
+// ===== RATING HANDLERS =====
 for (let i = 1; i <= 5; i++) {
   bot.action(`rate_${i}`, async (ctx) => {
     try {
@@ -147,7 +181,7 @@ for (let i = 1; i <= 5; i++) {
   });
 }
 
-// ===== NEW: PRODUCT INFO CALLBACK =====
+// ===== PRODUCT INFO CALLBACK =====
 bot.action(/^product_/, async (ctx) => {
   try {
     const productId = ctx.callbackQuery.data.replace('product_', '');
@@ -192,7 +226,7 @@ ${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `�
   }
 });
 
-// ===== NEW: GROUP MEMBER JOIN HANDLER =====
+// ===== GROUP MEMBER JOIN HANDLER =====
 bot.on('new_chat_members', async (ctx) => {
   try {
     const brandMemory = await BrandMemory.getMemory();
@@ -208,7 +242,7 @@ bot.on('new_chat_members', async (ctx) => {
   }
 });
 
-// ===== MESSAGE HANDLING WITH RATE LIMITING =====
+// ===== MESSAGE HANDLING WITH RATE LIMITING (AUTO-TRIGGERS) =====
 bot.on('text', rateLimitMiddleware, MessageController.handleMessage);
 
 // ===== HTTP SERVER FOR HEALTH CHECKS =====
