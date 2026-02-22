@@ -116,18 +116,7 @@ export class StrictResponseFormatter {
           Markup.button.callback('✍️ Share', 'share_quote')
         ],
         [Markup.button.callback('🏠 Home', 'dash_main')]
-      ],
-
-      // ===== VOICE MESSAGE RESPONSES =====
-      voice: [
-        [
-          Markup.button.callback('🔄 Send Another', 'send_voice_again'),
-          Markup.button.callback('🎤 Different Language', 'voice_lang')
-        ],
-        [Markup.button.callback('🏠 Home', 'dash_main')]
-      ],
-
-      // ===== CONTACT RESPONSES =====
+   === CONTACT RESPONSES =====
       contact: [
         [
           Markup.button.url('💬 Telegram', 'https://t.me/Otakuosenpai'),

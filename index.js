@@ -18,7 +18,7 @@ import { GroupController } from './controllers/groupController.js';
 import { DashboardManager } from './utils/dashboardManager.js';
 import { AIResponseFormatter } from './utils/aiResponseFormatter.js';
 import { ProductBrowser } from './utils/productBrowser.js';
-import { VoiceMessageHandler } from './utils/voiceMessageHandler.js';
+
 import { StrictResponseFormatter } from './utils/strictResponseFormatter.js';
 
 // Validate environment variables
@@ -403,33 +403,5 @@ bot.action(/^prod_file_/, async (ctx) => {
   await ProductBrowser.showFileDetails(ctx, productId, fileIndex);
 });
 
-// ===== VOICE MESSAGE CALLBACKS =====
-bot.action('send_voice_again', async (ctx) => {
-  await ctx.answerCbQuery('🎤 Please send your next message to convert to voice');
-});
 
-bot.action('voice_lang', async (ctx) => {
-  const keyboard = Markup.inlineKeyboard([
-    [
-      Markup.button.callback('🇬🇧 English', 'voice_lang_en'),
-      Markup.button.callback('🇧🇩 Bengali', 'voice_lang_bn')
-    ],
-    [
-      Markup.button.callback('🇮🇳 Hindi', 'voice_lang_hi'),
-      Markup.button.callback('🏠 Back', 'dash_main')
-    ]
-  ]);
-  await ctx.editMessageText('🎤 *Select Language*\n\nChoose the language for voice response:', {
-    parse_mode: 'Markdown',
-    ...keyboard
-  });
-  await ctx.answerCbQuery();
-});
-
-bot.action(/^voice_lang_/, async (ctx) => {
-  const lang = ctx.callbackQuery.data.replace('voice_lang_', '');
-  ctx.session = ctx.session || {};
-  ctx.session.voiceLanguage = lang;
-  await ctx.answerCbQuery(`✅ Language set to ${lang}`);
-});
 
