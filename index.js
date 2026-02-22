@@ -9,6 +9,7 @@ import { AdminController } from './controllers/adminController.js';
 import { MessageController } from './controllers/messageController.js';
 import { BrandMemory } from './database/models/BrandMemory.js';
 import { Product } from './database/models/Product.js';
+import { User } from './database/models/User.js';
 
 // Validate environment variables
 if (!config.telegram.botToken) {
@@ -42,11 +43,11 @@ bot.catch((err, ctx) => {
   logger.error('Bot error:', err);
 });
 
-// Commands
+// ===== COMMANDS =====
 bot.command('start', MessageController.handleStart);
 bot.command('help', MessageController.handleHelp);
 
-// Admin commands
+// ===== ADMIN COMMANDS =====
 bot.command('update_memory', isAdmin, AdminController.handleUpdateMemory);
 bot.command('add_product', isAdmin, AdminController.handleAddProduct);
 bot.command('remove_product', isAdmin, AdminController.handleRemoveProduct);
@@ -56,22 +57,34 @@ bot.command('list_products', isAdmin, AdminController.handleListProducts);
 bot.command('broadcast', isAdmin, AdminController.handleBroadcast);
 bot.command('backup', isAdmin, AdminController.handleBackup);
 
-// Admin Restart Command
+// ===== NEW: GROUP MANAGEMENT COMMANDS =====
+bot.command('kick', isAdmin, AdminController.handleKickUser);
+bot.command('ban', isAdmin, AdminController.handleBanUser);
+bot.command('unban', isAdmin, AdminController.handleUnbanUser);
+bot.command('promote', isAdmin, AdminController.handlePromoteUser);
+
+// ===== NEW: FAQ MANAGEMENT COMMANDS =====
+bot.command('add_faq', isAdmin, AdminController.handleAddFAQ);
+bot.command('remove_faq', isAdmin, AdminController.handleRemoveFAQ);
+
+// ===== RESTART COMMAND =====
 bot.command('restart', isAdmin, async (ctx) => {
-  await ctx.reply('🔄 *System Reboot Initiated...*\nShutting down and restarting bot instance.', { parse_mode: 'Markdown' });
+  await ctx.reply('🔄 *System Reboot Initiated...*\n\nShutting down and restarting bot instance.', { parse_mode: 'Markdown' });
   logger.info('Admin requested manual restart.');
   process.exit(0);
 });
 
-// Callbacks - User Actions
+// ===== CALLBACKS - USER ACTIONS =====
 bot.action('main_menu', MessageController.handleStart);
 bot.action('help_menu', MessageController.handleHelp);
 bot.action('view_products', MessageController.handleListProducts);
 bot.action('lang_selection', MessageController.showLanguageSelection);
 bot.action(/^lang_/, MessageController.handleLanguageSelection);
 bot.action('contact_card', MessageController.sendContactCard);
+bot.action('my_profile', MessageController.handleMyProfile);
+bot.action('faq_menu', MessageController.handleFAQ);
 
-// Callbacks - Admin Actions
+// ===== CALLBACKS - ADMIN ACTIONS =====
 bot.action('admin_menu', isAdmin, MessageController.handleAdminMenu);
 bot.action('status_menu', isAdmin, AdminController.handleStatus);
 bot.action(/^status_/, isAdmin, AdminController.handleStatusCallback);
@@ -79,19 +92,126 @@ bot.action('view_memory_cb', isAdmin, AdminController.handleViewMemory);
 bot.action('backup_system', isAdmin, AdminController.handleBackup);
 bot.action('broadcast_menu', isAdmin, async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.reply('📢 *BROADCAST SYSTEM*\n\nUsage: `/broadcast [your message]`\n\nThis will send a message to ALL users who have talked to the bot.', { parse_mode: 'Markdown' });
+  await ctx.reply('📢 *BROADCAST SYSTEM*\n\nUsage: `/broadcast [your message]`\n\nThis will send a message to ALL users.', { parse_mode: 'Markdown' });
 });
 bot.action('restart_bot', isAdmin, async (ctx) => {
   await ctx.answerCbQuery('🔄 Restarting System...');
-  await ctx.reply('🔄 *System Reboot Initiated...*\nShutting down and restarting bot instance.', { parse_mode: 'Markdown' });
+  await ctx.reply('🔄 *System Reboot Initiated...*\n\nShutting down and restarting bot instance.', { parse_mode: 'Markdown' });
   logger.info('Admin requested manual restart via button.');
   process.exit(0);
 });
 
-// Message handling with rate limiting
+// ===== NEW: RATING CALLBACK =====
+bot.action('rate_bot', async (ctx) => {
+  try {
+    const keyboard = require('telegraf').Markup.inlineKeyboard([
+      [
+        require('telegraf').Markup.button.callback('⭐ 1', 'rate_1'),
+        require('telegraf').Markup.button.callback('⭐⭐ 2', 'rate_2'),
+        require('telegraf').Markup.button.callback('⭐⭐⭐ 3', 'rate_3')
+      ],
+      [
+        require('telegraf').Markup.button.callback('⭐⭐⭐⭐ 4', 'rate_4'),
+        require('telegraf').Markup.button.callback('⭐⭐⭐⭐⭐ 5', 'rate_5')
+      ]
+    ]);
+
+    await ctx.editMessageText('⭐ *How would you rate this bot?*\n\nYour feedback helps us improve!', {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+    await ctx.answerCbQuery();
+  } catch (error) {
+    logger.error('Error in rate_bot callback:', error);
+  }
+});
+
+// ===== NEW: RATING HANDLERS =====
+for (let i = 1; i <= 5; i++) {
+  bot.action(`rate_${i}`, async (ctx) => {
+    try {
+      const user = await User.findOne({ telegramId: ctx.from.id });
+      if (user) {
+        user.feedbackRating = i;
+        await user.save();
+      }
+      
+      await ctx.editMessageText(`✅ *Thank you for rating us ${i}/5!*\n\nYour feedback is valuable to us. 😊`, {
+        parse_mode: 'Markdown'
+      });
+      await ctx.answerCbQuery('Rating saved!');
+      logger.info(`User ${ctx.from.id} rated bot: ${i}/5`);
+    } catch (error) {
+      logger.error('Error in rating handler:', error);
+    }
+  });
+}
+
+// ===== NEW: PRODUCT INFO CALLBACK =====
+bot.action(/^product_/, async (ctx) => {
+  try {
+    const productId = ctx.callbackQuery.data.replace('product_', '');
+    const product = await Product.findById(productId);
+    
+    if (!product) {
+      return ctx.answerCbQuery('Product not found');
+    }
+
+    product.viewCount = (product.viewCount || 0) + 1;
+    await product.save();
+
+    const detailMsg = `
+📦 *${product.name}*
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 ${product.description}
+
+💰 *Price:* ${product.price}
+
+${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `• ${f}`).join('\n')}\n` : ''}
+
+👁️ *Views:* ${product.viewCount}
+
+🆔 ID: \`${product._id}\`
+    `.trim();
+
+    const keyboard = require('telegraf').Markup.inlineKeyboard([
+      [require('telegraf').Markup.button.url('🔗 View Demo', product.demoUrl || 'https://t.me/Otakuosenpai')],
+      [require('telegraf').Markup.button.url('💬 Contact', product.contactUrl || 'https://t.me/Otakuosenpai')],
+      [require('telegraf').Markup.button.callback('⬅️ Back', 'view_products')]
+    ]);
+
+    await ctx.editMessageText(detailMsg, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+    await ctx.answerCbQuery();
+  } catch (error) {
+    logger.error('Error in product callback:', error);
+    ctx.answerCbQuery('Error loading product');
+  }
+});
+
+// ===== NEW: GROUP MEMBER JOIN HANDLER =====
+bot.on('new_chat_members', async (ctx) => {
+  try {
+    const brandMemory = await BrandMemory.getMemory();
+    
+    for (const member of ctx.message.new_chat_members) {
+      if (!member.is_bot) {
+        const welcomeMsg = `👋 Welcome *${member.first_name}* to the group!\n\nI'm Salman Dev's AI assistant. Feel free to ask anything! 😊\n\nUse /help to see what I can do.`;
+        await ctx.reply(welcomeMsg, { parse_mode: 'Markdown' });
+      }
+    }
+  } catch (error) {
+    logger.error('Error in new_chat_members handler:', error);
+  }
+});
+
+// ===== MESSAGE HANDLING WITH RATE LIMITING =====
 bot.on('text', rateLimitMiddleware, MessageController.handleMessage);
 
-// Simple HTTP server for Render port binding & Uptime Monitoring
+// ===== HTTP SERVER FOR HEALTH CHECKS =====
 const PORT = process.env.PORT || 3000;
 const server = http.createServer((req, res) => {
   if (req.url === '/health') {
@@ -107,9 +227,9 @@ server.listen(PORT, '0.0.0.0', () => {
   logger.info(`🌐 Health check server listening on port ${PORT}`);
 });
 
-// Self-pinging mechanism to prevent Render sleep
+// ===== SELF-PINGING MECHANISM =====
 setInterval(() => {
-  const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+  const url = process.env.RENDER_EXTERNAL_URL || process.env.KOYEB_EXTERNAL_URL || `http://localhost:${PORT}`;
   if (url.startsWith('http')) {
     http.get(`${url}/health`, (res) => {
       logger.info(`Self-ping status: ${res.statusCode}`);
@@ -119,7 +239,7 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000);
 
-// Graceful shutdown
+// ===== GRACEFUL SHUTDOWN =====
 const shutdown = (signal) => {
   logger.info(`${signal} received, stopping bot...`);
   bot.stop(signal);
@@ -132,19 +252,16 @@ const shutdown = (signal) => {
 process.once('SIGINT', () => shutdown('SIGINT'));
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 
-// Start bot with robust error handling for 409 Conflict
+// ===== START BOT =====
 const startBot = async () => {
   try {
     logger.info('Starting bot initialization...');
     
-    // 1. Force clear any existing webhooks and pending updates
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
     logger.info('Webhook and pending updates cleared.');
 
-    // 2. Wait for a few seconds to let Telegram's servers sync
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    // 3. Launch the bot with polling
     await bot.launch({
       polling: {
         allowedUpdates: ['message', 'callback_query'],

@@ -5,6 +5,13 @@ import { User } from '../database/models/User.js';
 import { logger } from '../utils/logger.js';
 import fs from 'fs';
 import path from 'path';
+import {
+  kickUser,
+  banUser,
+  unbanUser,
+  restrictUser,
+  promoteModerator
+} from '../utils/helpers.js';
 
 export class AdminController {
   static async handleUpdateMemory(ctx) {
@@ -13,30 +20,29 @@ export class AdminController {
       
       if (!text) {
         return ctx.reply(
-          '📝 *UPDATE BRAND INTEL*\n' +
+          '📝 *UPDATE BRAND INFO*\n' +
           '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
           'Usage: `/update_memory [field] [value]`\n\n' +
           '💎 *Available Fields:*\n' +
-          '• `about` - Brand Identity\n' +
-          '• `services` - Premium Services\n' +
-          '• `offers` - Exclusive Deals\n' +
-          '• `availability` - Presence Info\n' +
-          '• `notes` - Custom Intel\n\n' +
+          '• `about` - About you\n' +
+          '• `services` - Your services (comma-separated)\n' +
+          '• `offers` - Current offers\n' +
+          '• `availability` - Availability info\n' +
+          '• `notes` - Custom notes\n\n' +
           '💡 *Example:*\n' +
-          '`/update_memory about Salman Dev is an elite full-stack developer.`',
+          '`/update_memory about I am a full-stack developer from Bangladesh`',
           { parse_mode: 'Markdown' }
         );
       }
 
       const memory = await BrandMemory.getMemory();
       
-      // Parse field and value
       const parts = text.split(' ');
       const field = parts[0].toLowerCase();
       const value = parts.slice(1).join(' ');
 
       if (!value) {
-        return ctx.reply('❌ *Error:* Please provide a value for the field.');
+        return ctx.reply('❌ Please provide a value for the field.');
       }
 
       switch (field) {
@@ -56,18 +62,18 @@ export class AdminController {
           memory.customNotes = value;
           break;
         default:
-          return ctx.reply('❌ *Error:* Invalid field. Use: about, services, offers, availability, or notes');
+          return ctx.reply('❌ Invalid field. Use: about, services, offers, availability, or notes');
       }
 
       memory.lastUpdated = Date.now();
       await memory.save();
 
       logger.info(`Brand memory updated by admin: ${field}`);
-      ctx.reply(`✅ *Intel Updated Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n💎 *Field:* ${field}\n💎 *Value:* ${value}`, { parse_mode: 'Markdown' });
+      ctx.reply(`✅ *Updated Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n💎 *Field:* ${field}\n💎 *Value:* ${value}`, { parse_mode: 'Markdown' });
 
     } catch (error) {
       logger.error('Error in handleUpdateMemory:', error);
-      ctx.reply('❌ *Error:* Failed to update memory. Please try again.');
+      ctx.reply('❌ Failed to update memory. Please try again.');
     }
   }
 
@@ -77,12 +83,12 @@ export class AdminController {
       
       if (!text) {
         return ctx.reply(
-          '🛍️ *ADD NEW ASSET*\n' +
+          '🛍️ *ADD NEW PRODUCT*\n' +
           '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
           'Usage: `/add_product [name] | [description] | [price] | [features] | [demo_url]`\n\n' +
           '💡 *Example:*\n' +
           '`/add_product Elite Bot | Custom AI for business | $1000 | 24/7 support, Multi-language | https://demo.com`\n\n' +
-          '⚠️ *Note:* Features should be comma-separated. Demo URL is optional.',
+          '⚠️ *Note:* Features should be comma-separated.',
           { parse_mode: 'Markdown' }
         );
       }
@@ -90,7 +96,7 @@ export class AdminController {
       const parts = text.split('|').map(p => p.trim());
       
       if (parts.length < 3) {
-        return ctx.reply('❌ *Error:* Invalid format. Please provide at least: name | description | price');
+        return ctx.reply('❌ Invalid format. Provide at least: name | description | price');
       }
 
       const [name, description, price, featuresStr, demoUrl] = parts;
@@ -110,7 +116,7 @@ export class AdminController {
       logger.info(`Product added by admin: ${name}`);
       
       ctx.reply(
-        `✅ *Asset Added Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `✅ *Product Added!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `📦 *${product.name}*\n` +
         `💰 *Price:* ${product.price}\n` +
         `📝 *Description:* ${product.description}\n` +
@@ -121,7 +127,7 @@ export class AdminController {
 
     } catch (error) {
       logger.error('Error in handleAddProduct:', error);
-      ctx.reply('❌ *Error:* Failed to add product. Please try again.');
+      ctx.reply('❌ Failed to add product. Please try again.');
     }
   }
 
@@ -131,10 +137,10 @@ export class AdminController {
       
       if (!text) {
         return ctx.reply(
-          '🗑️ *REMOVE ASSET*\n' +
+          '🗑️ *REMOVE PRODUCT*\n' +
           '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
           'Usage: `/remove_product [Product ID]`\n\n' +
-          '💡 *Tip:* Use `/list_products` to find the ID of the asset you want to remove.',
+          '💡 *Tip:* Use `/list_products` to find the ID.',
           { parse_mode: 'Markdown' }
         );
       }
@@ -142,15 +148,15 @@ export class AdminController {
       const product = await Product.findById(text);
       
       if (!product) {
-        return ctx.reply('❌ *Error:* Product not found. Please check the ID.');
+        return ctx.reply('❌ Product not found. Please check the ID.');
       }
 
       await Product.findByIdAndDelete(text);
       
-      logger.info(`Product removed by admin: ${product.name} (${text})`);
+      logger.info(`Product removed by admin: ${product.name}`);
       
       ctx.reply(
-        `✅ *Asset Removed Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `✅ *Product Removed!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `📦 *Name:* ${product.name}\n` +
         `🆔 *ID:* \`${text}\``,
         { parse_mode: 'Markdown' }
@@ -158,7 +164,7 @@ export class AdminController {
 
     } catch (error) {
       logger.error('Error in handleRemoveProduct:', error);
-      ctx.reply('❌ *Error:* Failed to remove product. Make sure you provided a valid MongoDB ID.');
+      ctx.reply('❌ Failed to remove product.');
     }
   }
 
@@ -173,9 +179,9 @@ export class AdminController {
         [Markup.button.callback('🛠 Admin Menu', 'admin_menu')]
       ]);
 
-      const text = '🚦 *PRESENCE CONTROL CENTER*\n' +
+      const text = '🚦 *PRESENCE CONTROL*\n' +
                    '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-                   'Select your current status below:\n\n' +
+                   'Select your status:\n\n' +
                    '🟢 *Online:* Bot is silent. You handle all.\n' +
                    '🟡 *Busy:* AI handles queries. You are busy.\n' +
                    '🔴 *Away:* AI handles all. You are offline.';
@@ -188,7 +194,7 @@ export class AdminController {
       }
     } catch (error) {
       logger.error('Error in handleStatus:', error);
-      ctx.reply('❌ *Error:* Failed to open status control.');
+      ctx.reply('❌ Failed to open status control.');
     }
   }
 
@@ -212,18 +218,18 @@ export class AdminController {
       };
 
       const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🚦 Back to Status', 'status_menu')],
+        [Markup.button.callback('🚦 Back', 'status_menu')],
         [Markup.button.callback('🏠 Main Menu', 'main_menu')]
       ]);
 
       await ctx.editMessageText(
-        `✅ *Presence Updated Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `✅ *Status Updated!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `${statusEmoji[status]} *New Status:* **${statusText[status]}**`,
         { parse_mode: 'Markdown', ...keyboard }
       );
 
       await ctx.answerCbQuery(`Status set to ${status.toUpperCase()}`);
-      logger.info(`Status updated via button: ${status}`);
+      logger.info(`Status updated: ${status}`);
 
     } catch (error) {
       logger.error('Error in handleStatusCallback:', error);
@@ -244,14 +250,14 @@ export class AdminController {
       };
 
       const message = `
-📊 *SYSTEM ANALYTICS & STATS*
+📊 *SYSTEM ANALYTICS*
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-🚦 *Current Status:* ${statusEmoji[memory.status]} **${memory.status.toUpperCase()}**
+🚦 *Status:* ${statusEmoji[memory.status]} **${memory.status.toUpperCase()}**
 👥 *Total Users:* **${userCount}**
-📦 *Active Assets:* **${products.length}**
+📦 *Active Products:* **${products.length}**
 
-👤 *Brand Identity:*
+👤 *Brand Info:*
 ${memory.getFormattedMemory()}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -275,7 +281,7 @@ ${memory.getFormattedMemory()}
       }
     } catch (error) {
       logger.error('Error in handleViewMemory:', error);
-      ctx.reply('❌ *Error:* Failed to retrieve memory. Please try again.');
+      ctx.reply('❌ Failed to retrieve memory.');
     }
   }
 
@@ -284,7 +290,7 @@ ${memory.getFormattedMemory()}
       const products = await Product.find({ isActive: true });
 
       if (products.length === 0) {
-        return ctx.reply('📦 *No assets available.*');
+        return ctx.reply('📦 No products available.');
       }
 
       const message = products.map((p, i) => 
@@ -295,22 +301,21 @@ ${memory.getFormattedMemory()}
       ).join('\n\n');
 
       const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🏠 Back to Menu', 'main_menu')]
+        [Markup.button.callback('🏠 Back', 'main_menu')]
       ]);
 
       if (ctx.callbackQuery) {
-        await ctx.editMessageText(`📜 *ASSET CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${message}`, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.editMessageText(`📜 *PRODUCT CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${message}`, { parse_mode: 'Markdown', ...keyboard });
         await ctx.answerCbQuery();
       } else {
-        await ctx.reply(`📜 *ASSET CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${message}`, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.reply(`📜 *PRODUCT CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${message}`, { parse_mode: 'Markdown', ...keyboard });
       }
     } catch (error) {
       logger.error('Error in handleListProducts:', error);
-      ctx.reply('❌ *Error:* Failed to retrieve products. Please try again.');
+      ctx.reply('❌ Failed to retrieve products.');
     }
   }
 
-  // --- NEW: BROADCAST SYSTEM ---
   static async handleBroadcast(ctx) {
     const text = ctx.message.text.replace('/broadcast', '').trim();
     if (!text) {
@@ -318,7 +323,7 @@ ${memory.getFormattedMemory()}
         '📢 *BROADCAST SYSTEM*\n' +
         '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
         'Usage: `/broadcast [your message]`\n\n' +
-        'This will send a message to ALL users who have talked to the bot.',
+        'This will send a message to ALL users.',
         { parse_mode: 'Markdown' }
       );
     }
@@ -328,27 +333,26 @@ ${memory.getFormattedMemory()}
       let successCount = 0;
       let failCount = 0;
 
-      await ctx.reply(`📢 *Starting broadcast to ${users.length} users...*`, { parse_mode: 'Markdown' });
+      await ctx.reply(`📢 *Broadcasting to ${users.length} users...*`, { parse_mode: 'Markdown' });
 
       for (const user of users) {
         try {
           await ctx.telegram.sendMessage(user.telegramId, `📢 *BROADCAST FROM SALMAN DEV*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${text}`, { parse_mode: 'Markdown' });
           successCount++;
-          await new Promise(resolve => setTimeout(resolve, 50)); // Avoid rate limits
+          await new Promise(resolve => setTimeout(resolve, 50));
         } catch (err) {
           failCount++;
-          logger.error(`Broadcast failed for user ${user.telegramId}: ${err.message}`);
+          logger.error(`Broadcast failed for user ${user.telegramId}`);
         }
       }
 
       await ctx.reply(`✅ *Broadcast Complete!*\n\n🚀 Success: ${successCount}\n❌ Failed: ${failCount}`, { parse_mode: 'Markdown' });
     } catch (error) {
       logger.error('Error in handleBroadcast:', error);
-      ctx.reply('❌ *Error:* Failed to complete broadcast.');
+      ctx.reply('❌ Broadcast failed.');
     }
   }
 
-  // --- NEW: AUTO-BACKUP SYSTEM ---
   static async handleBackup(ctx) {
     try {
       const memory = await BrandMemory.find();
@@ -362,7 +366,8 @@ ${memory.getFormattedMemory()}
         users: users.map(u => ({
           telegramId: u.telegramId,
           username: u.username,
-          language: u.language
+          language: u.language,
+          messageCount: u.messageCount
         }))
       };
 
@@ -372,15 +377,166 @@ ${memory.getFormattedMemory()}
       fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2));
 
       await ctx.replyWithDocument({ source: filePath, filename: fileName }, {
-        caption: '🛡️ *SYSTEM BACKUP COMPLETE*\n\nThis file contains all your brand memory, products, and user data.',
+        caption: '🛡️ *SYSTEM BACKUP COMPLETE*\n\nThis file contains all your data.',
         parse_mode: 'Markdown'
       });
 
-      fs.unlinkSync(filePath); // Clean up
+      fs.unlinkSync(filePath);
       if (ctx.callbackQuery) await ctx.answerCbQuery('Backup sent!');
     } catch (error) {
       logger.error('Error in handleBackup:', error);
-      ctx.reply('❌ *Error:* Failed to create backup.');
+      ctx.reply('❌ Failed to create backup.');
+    }
+  }
+
+  // ===== NEW: GROUP MANAGEMENT =====
+  static async handleKickUser(ctx) {
+    try {
+      const text = ctx.message.text.replace('/kick', '').trim();
+      
+      if (!text) {
+        return ctx.reply('Usage: `/kick @username` or `/kick user_id`', { parse_mode: 'Markdown' });
+      }
+
+      const userId = parseInt(text) || text;
+      const success = await kickUser(ctx, userId);
+
+      if (success) {
+        ctx.reply(`✅ User kicked from the group.`);
+      } else {
+        ctx.reply(`❌ Failed to kick user. Check if user exists.`);
+      }
+    } catch (error) {
+      logger.error('Error in handleKickUser:', error);
+      ctx.reply('❌ Error kicking user.');
+    }
+  }
+
+  static async handleBanUser(ctx) {
+    try {
+      const text = ctx.message.text.replace('/ban', '').trim();
+      
+      if (!text) {
+        return ctx.reply('Usage: `/ban @username` or `/ban user_id`', { parse_mode: 'Markdown' });
+      }
+
+      const userId = parseInt(text) || text;
+      const success = await banUser(ctx, userId);
+
+      if (success) {
+        ctx.reply(`✅ User banned from the group.`);
+      } else {
+        ctx.reply(`❌ Failed to ban user.`);
+      }
+    } catch (error) {
+      logger.error('Error in handleBanUser:', error);
+      ctx.reply('❌ Error banning user.');
+    }
+  }
+
+  static async handleUnbanUser(ctx) {
+    try {
+      const text = ctx.message.text.replace('/unban', '').trim();
+      
+      if (!text) {
+        return ctx.reply('Usage: `/unban @username` or `/unban user_id`', { parse_mode: 'Markdown' });
+      }
+
+      const userId = parseInt(text) || text;
+      const success = await unbanUser(ctx, userId);
+
+      if (success) {
+        ctx.reply(`✅ User unbanned.`);
+      } else {
+        ctx.reply(`❌ Failed to unban user.`);
+      }
+    } catch (error) {
+      logger.error('Error in handleUnbanUser:', error);
+      ctx.reply('❌ Error unbanning user.');
+    }
+  }
+
+  static async handlePromoteUser(ctx) {
+    try {
+      const text = ctx.message.text.replace('/promote', '').trim();
+      
+      if (!text) {
+        return ctx.reply('Usage: `/promote @username` or `/promote user_id`', { parse_mode: 'Markdown' });
+      }
+
+      const userId = parseInt(text) || text;
+      const success = await promoteModerator(ctx, userId);
+
+      if (success) {
+        ctx.reply(`✅ User promoted to moderator.`);
+      } else {
+        ctx.reply(`❌ Failed to promote user.`);
+      }
+    } catch (error) {
+      logger.error('Error in handlePromoteUser:', error);
+      ctx.reply('❌ Error promoting user.');
+    }
+  }
+
+  // ===== NEW: FAQ MANAGEMENT =====
+  static async handleAddFAQ(ctx) {
+    try {
+      const text = ctx.message.text.replace('/add_faq', '').trim();
+      
+      if (!text) {
+        return ctx.reply(
+          '❓ *ADD FAQ*\n' +
+          '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+          'Usage: `/add_faq [question] | [answer]`\n\n' +
+          '💡 *Example:*\n' +
+          '`/add_faq What is your price? | Our pricing starts at $500`',
+          { parse_mode: 'Markdown' }
+        );
+      }
+
+      const parts = text.split('|').map(p => p.trim());
+      
+      if (parts.length < 2) {
+        return ctx.reply('❌ Invalid format. Use: question | answer');
+      }
+
+      const [question, answer] = parts;
+      const memory = await BrandMemory.getMemory();
+      
+      if (!memory.faqs) memory.faqs = [];
+      
+      memory.faqs.push({ question, answer });
+      await memory.save();
+
+      ctx.reply(`✅ *FAQ Added!*\n\n❓ *Q:* ${question}\n📝 *A:* ${answer}`, { parse_mode: 'Markdown' });
+    } catch (error) {
+      logger.error('Error in handleAddFAQ:', error);
+      ctx.reply('❌ Failed to add FAQ.');
+    }
+  }
+
+  static async handleRemoveFAQ(ctx) {
+    try {
+      const text = ctx.message.text.replace('/remove_faq', '').trim();
+      
+      if (!text) {
+        return ctx.reply('Usage: `/remove_faq [index]` (e.g., `/remove_faq 1` for first FAQ)', { parse_mode: 'Markdown' });
+      }
+
+      const index = parseInt(text) - 1;
+      const memory = await BrandMemory.getMemory();
+      
+      if (!memory.faqs || index < 0 || index >= memory.faqs.length) {
+        return ctx.reply('❌ Invalid FAQ index.');
+      }
+
+      const removed = memory.faqs.splice(index, 1)[0];
+      await memory.save();
+
+      ctx.reply(`✅ *FAQ Removed!*\n\n❓ *Q:* ${removed.question}`, { parse_mode: 'Markdown' });
+    } catch (error) {
+      logger.error('Error in handleRemoveFAQ:', error);
+      ctx.reply('❌ Failed to remove FAQ.');
     }
   }
 }

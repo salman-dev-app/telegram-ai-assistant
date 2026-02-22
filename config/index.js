@@ -6,6 +6,8 @@ export const config = {
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN,
     adminId: parseInt(process.env.ADMIN_TELEGRAM_ID),
+    musicBotUsername: process.env.MUSIC_BOT_USERNAME || 'YourMusicBot',
+    groupId: process.env.GROUP_ID || null,
   },
   openRouter: {
     apiKey: process.env.OPENROUTER_API_KEY,
@@ -20,9 +22,12 @@ export const config = {
     uri: process.env.MONGODB_URI,
   },
   bot: {
-    typingDelayMin: 1000, // 1 second
-    typingDelayMax: 3000, // 3 seconds
-    maxRepliesPerMinute: 5,
-    spamThreshold: 3, // Same message repeated 3 times
+    typingDelayMin: 1000,
+    typingDelayMax: 3000,
+    maxRepliesPerMinute: 8,
+    spamThreshold: 3,
+  },
+  weather: {
+    apiKey: process.env.WEATHER_API_KEY || null,
   }
 };

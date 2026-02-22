@@ -1,7 +1,7 @@
 {
   "name": "telegram-ai-assistant",
-  "version": "1.0.0",
-  "description": "Production-ready Telegram AI Assistant for Salman Dev - Human-like group assistant with multi-model AI, MongoDB, and intelligent conversation handling",
+  "version": "2.0.0",
+  "description": "Advanced Telegram AI Assistant with music integration, image generation, translation, group management, and smart conversation detection",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -14,6 +14,10 @@
     "bot",
     "ai",
     "assistant",
+    "music",
+    "translation",
+    "image-generation",
+    "group-management",
     "openrouter",
     "mongodb"
   ],

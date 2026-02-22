@@ -4,7 +4,7 @@ import { logger } from '../utils/logger.js';
 
 export class GroqAI {
   constructor() {
-    this.apiKey = config.openRouter.apiKey; // Reusing the key from config
+    this.apiKey = config.openRouter.apiKey;
     this.baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
     this.models = [
       'llama-3.3-70b-versatile',
@@ -33,15 +33,15 @@ export class GroqAI {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          max_tokens: 150,
-          temperature: 0.7,
+          max_tokens: 200,
+          temperature: 0.75,
         },
         {
           headers: {
             'Authorization': `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json'
           },
-          timeout: 10000
+          timeout: 12000
         }
       );
 
@@ -74,22 +74,43 @@ export class GroqAI {
         - Do NOT use Bengali Unicode characters/script.
         - Use Romanized Bengali only.
         - Example: "Apnake kivabe sahajjo korte pari?"
-        - Tone: Natural, conversational, short (1-2 sentences).
-        - Examples: "Salman Dev ekhon offline achen.", "Apni chaile message rekhe jete paren.", "Ektu wait korun, ami check kortesi."
+        - Tone: Natural, conversational, friendly, short (1-3 sentences max).
+        - Examples: 
+          "Salman Dev ekhon offline achen, ektu por abar try korun."
+          "Apni chaile message rekhe jete paren, Salman bhai reply korben."
+          "Ektu wait korun, ami check kortesi."
+          "Haa, eta possible! Salman bhai er sathe directly kotha bolte paren."
+        - Sound like a real Bangladeshi friend, not a robot.
+        - NEVER say you are an AI unless directly asked.
       `,
-      hindi: 'You MUST respond in Romanized Hindi (Hindi words written in English letters). Example: "Kaise hain aap? Main aapki kya madad kar sakta hoon?"',
-      english: 'You will respond in English.'
+      hindi: `
+        You MUST respond in Romanized Hindi (Hindi words written in English letters).
+        Example: "Kaise hain aap? Main aapki kya madad kar sakta hoon?"
+        Tone: Friendly, natural, short (1-3 sentences max).
+        Sound like a real person, not a robot.
+        NEVER say you are an AI unless directly asked.
+      `,
+      english: `
+        You will respond in English.
+        Tone: Professional yet friendly, short (1-3 sentences max).
+        Sound like a real human assistant, not a robot.
+        NEVER say you are an AI unless directly asked.
+      `
     };
 
-    return `You are a professional digital assistant for Salman Dev, a tech entrepreneur and developer.
+    return `You are a smart, human-like digital assistant for Salman Dev, a professional developer and tech entrepreneur from Bangladesh.
 
 Your role:
-- Assist potential clients in a friendly, human-like manner.
+- Assist potential clients and group members in a friendly, human-like manner.
 - Explain services and products clearly and concisely.
 - Keep conversations engaging and natural.
 - NEVER sound robotic or like ChatGPT.
-- Keep responses VERY SHORT (1-2 sentences maximum).
-- Act like a real human business assistant.
+- Keep responses SHORT (1-3 sentences maximum).
+- Act like a real human business assistant who genuinely cares.
+- If someone is just chatting casually, respond casually. If they need help, be helpful.
+- SMART DETECTION: Only respond when someone is genuinely talking to you or asking something relevant. Do NOT respond to general group chatter that has nothing to do with services, products, or Salman Dev.
+- If someone asks about pricing, services, demos, or products, always be helpful and offer to connect them.
+- If someone asks something you don't know, say you'll check and they can contact Salman Dev directly.
 
 ${languageInstructions[language] || languageInstructions.english}
 
@@ -98,9 +119,9 @@ Remember: You're representing a real person's brand. Be authentic, helpful, and 
 
   getFallbackResponse(language) {
     const fallbacks = {
-      bangla: 'Dukkito, ami ekhon reply dite parchi na. Ektu por abar try korun.',
-      hindi: 'Maaf kijiye, main abhi jawab nahi de pa raha hoon. Kripya thodi der baad fir koshish karein.',
-      english: 'Sorry, I\'m having trouble responding right now. Please try again in a moment.'
+      bangla: 'Dukkito, ekhon ektu problem hochhe. Salman bhai ke directly message korun: @Otakuosenpai',
+      hindi: 'Maaf kijiye, abhi thodi takleef ho rahi hai. Salman Dev ko directly message karein: @Otakuosenpai',
+      english: 'Sorry, I\'m having a small issue right now. Please contact Salman Dev directly: @Otakuosenpai'
     };
 
     return fallbacks[language] || fallbacks.english;
@@ -111,16 +132,49 @@ Remember: You're representing a real person's brand. Be authentic, helpful, and 
 Brand Memory:
 ${brandMemory}
 
-Available Products:
+Available Products/Services:
 ${products}
 
-User's previous context: ${userContext || 'First interaction'}
+User's previous conversation context: ${userContext || 'First interaction'}
 
-User's message: ${userMessage}
+User's current message: ${userMessage}
 
-Respond naturally and helpfully. Keep it brief and human-like.
+Respond naturally and helpfully. Keep it brief and human-like. If the user is asking about a product, mention it naturally and offer to help them get more info or a demo.
 `.trim();
 
     return this.generateResponse(contextPrompt, userLanguage);
+  }
+
+  // Detect if a message is genuinely directed at the bot or needs a response
+  async shouldRespond(message, botName, brandKeywords) {
+    const lowerMsg = message.toLowerCase();
+    
+    // Always respond if bot is mentioned
+    if (botName && lowerMsg.includes(botName.toLowerCase())) return true;
+    
+    // Always respond to questions
+    if (message.includes('?')) return true;
+    
+    // Respond to brand/service keywords
+    const keywords = [
+      'salman', 'dev', 'bot', 'price', 'cost', 'service', 'product', 'demo',
+      'help', 'contact', 'hire', 'project', 'work', 'website', 'app', 'build',
+      'daam', 'ki', 'koto', 'kivabe', 'kemon', 'lagbe', 'chai', 'dorkar',
+      'bhai', 'vai', 'apu', 'boss', 'sir',
+      ...(brandKeywords || [])
+    ];
+    
+    for (const keyword of keywords) {
+      if (lowerMsg.includes(keyword)) return true;
+    }
+    
+    // Don't respond to very short messages that are just reactions
+    if (message.length < 4) return false;
+    
+    // Don't respond to messages that look like they're talking to someone else
+    // (contain @username that is not this bot)
+    if (message.includes('@') && !message.includes('@' + botName)) return false;
+    
+    return false;
   }
 }

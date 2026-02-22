@@ -29,6 +29,18 @@ const productSchema = new mongoose.Schema({
   viewCount: {
     type: Number,
     default: 0
+  },
+  category: {
+    type: String,
+    default: 'General'
+  },
+  thumbnailUrl: {
+    type: String,
+    default: null
+  },
+  contactUrl: {
+    type: String,
+    default: 'https://t.me/Otakuosenpai'
   }
 }, {
   timestamps: true

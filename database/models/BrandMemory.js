@@ -35,6 +35,29 @@ const brandMemorySchema = new mongoose.Schema({
   lastUpdated: {
     type: Date,
     default: Date.now
+  },
+  // Social links
+  socialLinks: {
+    telegram: { type: String, default: 'https://t.me/Otakuosenpai' },
+    github: { type: String, default: 'https://github.com/salman-dev-app' },
+    whatsapp: { type: String, default: null },
+    email: { type: String, default: 'mdsalmanhelp0@gmail.com' },
+    portfolio: { type: String, default: null },
+    youtube: { type: String, default: null },
+  },
+  // FAQ entries
+  faqs: [{
+    question: String,
+    answer: String
+  }],
+  // Daily greeting toggle
+  dailyGreetingEnabled: {
+    type: Boolean,
+    default: false
+  },
+  greetingGroupId: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

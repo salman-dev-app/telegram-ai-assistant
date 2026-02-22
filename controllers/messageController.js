@@ -4,6 +4,26 @@ import { BrandMemory } from '../database/models/BrandMemory.js';
 import { Product } from '../database/models/Product.js';
 import { GroqAI } from '../ai/groq.js';
 import { logger } from '../utils/logger.js';
+import {
+  UIButtons,
+  detectMusicRequest,
+  detectWeatherRequest,
+  getWeather,
+  detectTranslationRequest,
+  translateMessage,
+  detectImageRequest,
+  generateImage,
+  detectIntent,
+  getWelcomeMessage,
+  calculateTypingDelay,
+  getRandomJoke,
+  createPoll,
+  kickUser,
+  banUser,
+  unbanUser,
+  restrictUser,
+  promoteModerator
+} from '../utils/helpers.js';
 
 const ai = new GroqAI();
 
@@ -34,6 +54,80 @@ export class MessageController {
         return MessageController.showLanguageSelection(ctx);
       }
 
+      // ===== NEW: MUSIC REQUEST =====
+      const songName = detectMusicRequest(message);
+      if (songName) {
+        await user.addMessage(message);
+        user.songsRequested = (user.songsRequested || 0) + 1;
+        await user.save();
+        
+        const musicMsg = `🎵 *Music Request Detected!*\n\nYou want to play: **${songName}**\n\nForward this to music bot or use:\n\`/play ${songName}\`\n\nOr tag the music bot in the group!`;
+        return ctx.reply(musicMsg, {
+          parse_mode: 'Markdown',
+          reply_to_message_id: ctx.message.message_id
+        });
+      }
+
+      // ===== NEW: WEATHER REQUEST =====
+      const city = detectWeatherRequest(message);
+      if (city) {
+        await user.addMessage(message);
+        const weatherApiKey = process.env.WEATHER_API_KEY || null;
+        const weatherInfo = await getWeather(city, weatherApiKey);
+        return ctx.reply(weatherInfo, {
+          parse_mode: 'Markdown',
+          reply_to_message_id: ctx.message.message_id
+        });
+      }
+
+      // ===== NEW: TRANSLATION REQUEST =====
+      const translationReq = detectTranslationRequest(message);
+      if (translationReq) {
+        await user.addMessage(message);
+        await ctx.sendChatAction('typing');
+        const translated = await translateMessage(translationReq.text, translationReq.language);
+        return ctx.reply(`🌐 *Translation to ${translationReq.language}:*\n\n${translated}`, {
+          parse_mode: 'Markdown',
+          reply_to_message_id: ctx.message.message_id
+        });
+      }
+
+      // ===== NEW: IMAGE GENERATION REQUEST =====
+      const imagePrompt = detectImageRequest(message);
+      if (imagePrompt) {
+        await user.addMessage(message);
+        const imageApiKey = process.env.HUGGING_FACE_API_KEY || null;
+        
+        if (!imageApiKey) {
+          return ctx.reply('🖼️ Image generation API not configured. Please contact admin.', {
+            reply_to_message_id: ctx.message.message_id
+          });
+        }
+        
+        await ctx.sendChatAction('upload_photo');
+        const imageBuffer = await generateImage(imagePrompt, imageApiKey);
+        
+        if (imageBuffer) {
+          return ctx.replyWithPhoto({ source: imageBuffer }, {
+            caption: `🖼️ Generated: ${imagePrompt}`,
+            reply_to_message_id: ctx.message.message_id
+          });
+        } else {
+          return ctx.reply('❌ Could not generate image. Please try again.', {
+            reply_to_message_id: ctx.message.message_id
+          });
+        }
+      }
+
+      // ===== NEW: JOKE REQUEST =====
+      if (/joke|funny|laugh|haha|lol/.test(message.toLowerCase())) {
+        await user.addMessage(message);
+        const joke = getRandomJoke();
+        return ctx.reply(`😂 ${joke}`, {
+          reply_to_message_id: ctx.message.message_id
+        });
+      }
+
       // Check for contact/portfolio/links request
       const lowerMsg = message.toLowerCase();
       if (lowerMsg.includes('contact') || lowerMsg.includes('portfolio') || lowerMsg.includes('link') || lowerMsg.includes('github') || lowerMsg.includes('whatsapp') || lowerMsg.includes('email') || lowerMsg.includes('salman dev')) {
@@ -51,7 +145,9 @@ export class MessageController {
       await UserService.addUserMessage(user.telegramId, message);
 
       // Simulate typing delay
-      await MessageController.simulateTyping(ctx);
+      const typingDelay = calculateTypingDelay(message.length);
+      await ctx.sendChatAction('typing');
+      await new Promise(resolve => setTimeout(resolve, typingDelay));
 
       // Get products
       const productsInfo = await Product.getAllFormatted();
@@ -71,6 +167,7 @@ export class MessageController {
 
       // Reply to the user's message
       await ctx.reply(aiResponse, {
+        parse_mode: 'Markdown',
         reply_to_message_id: ctx.message.message_id
       });
 
@@ -83,13 +180,29 @@ export class MessageController {
 
   static async sendContactCard(ctx) {
     try {
-      // Simplified to only show Telegram link as requested
-      const keyboard = Markup.inlineKeyboard([
-        [Markup.button.url('💬 Telegram Chat', 'https://t.me/Otakuosenpai')]
-      ]);
+      const memory = await BrandMemory.getMemory();
+      
+      const buttons = [
+        [Markup.button.url('💬 Telegram', memory.socialLinks.telegram)]
+      ];
+      
+      if (memory.socialLinks.github) {
+        buttons.push([Markup.button.url('🐙 GitHub', memory.socialLinks.github)]);
+      }
+      if (memory.socialLinks.whatsapp) {
+        buttons.push([Markup.button.url('💬 WhatsApp', memory.socialLinks.whatsapp)]);
+      }
+      if (memory.socialLinks.email) {
+        buttons.push([Markup.button.url('📧 Email', `mailto:${memory.socialLinks.email}`)]);
+      }
+      if (memory.socialLinks.portfolio) {
+        buttons.push([Markup.button.url('🌐 Portfolio', memory.socialLinks.portfolio)]);
+      }
+
+      const keyboard = Markup.inlineKeyboard(buttons);
 
       await ctx.reply(
-        "Connect with Salman Dev using the option below:",
+        "📞 *Connect with Salman Dev:*\n\nChoose your preferred contact method:",
         {
           parse_mode: 'Markdown',
           ...keyboard,
@@ -105,18 +218,18 @@ export class MessageController {
     try {
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback('🇧🇩 Banglish', 'lang_bangla'),
-          Markup.button.callback('🇮🇳 Hindi', 'lang_hindi'),
-          Markup.button.callback('🇬🇧 English', 'lang_english')
+          Markup.button.callback('Bangla', 'lang_bangla'),
+          Markup.button.callback('Hindi', 'lang_hindi'),
+          Markup.button.callback('English', 'lang_english')
         ]
       ]);
 
-      const text = '💎 *SALMAN DEV ELITE ASSISTANT* 💎\n' +
+      const text = '🌐 *SELECT YOUR LANGUAGE*\n' +
                    '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-                   '✨ *Welcome to the Premium Experience*\n\n' +
-                   'Please select your preferred language:\n' +
-                   '👋 Swagotom! Bhasha bachai korun\n' +
-                   '👋 Swagat hai! Bhasha chunein\n' +
+                   'Choose your preferred language:\n\n' +
+                   '🇧🇩 Bangla - Bengali in English letters\n' +
+                   '🇮🇳 Hindi - Romanized Hindi\n' +
+                   '🇬🇧 English - Standard English\n' +
                    '━━━━━━━━━━━━━━━━━━━━━━━━';
 
       if (ctx.callbackQuery) {
@@ -151,13 +264,13 @@ export class MessageController {
       await UserService.setUserLanguage(userId, language);
 
       const confirmMessages = {
-        bangla: '✅ *Bhasha set kora hoyeche:* Banglish\n\nEkhon ami apnake shahajjo korte prostut! 🚀',
-        hindi: '✅ *Bhasha set ho gayi hai:* Hindi\n\nAb main aapki madad ke liye taiyaar hoon! 🚀',
-        english: '✅ *Language set:* English\n\nI am now ready to assist you! 🚀'
+        bangla: '✅ Language set to: Banglish\n\nEkhon ami apnake sahajjo korte prostut! 🚀',
+        hindi: '✅ Language set to: Hindi\n\nAb main aapki madad ke liye taiyaar hoon! 🚀',
+        english: '✅ Language set to: English\n\nI am now ready to assist you! 🚀'
       };
 
       const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🏠 Enter Dashboard', 'main_menu')]
+        [Markup.button.callback('📊 Dashboard', 'main_menu')]
       ]);
 
       await ctx.editMessageText(confirmMessages[language], {
@@ -174,45 +287,43 @@ export class MessageController {
     }
   }
 
-  static async simulateTyping(ctx) {
-    try {
-      await ctx.sendChatAction('typing');
-      const delay = Math.floor(Math.random() * (1500 - 500 + 1) + 500);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    } catch (error) {
-      logger.error('Error in simulateTyping:', error);
-    }
-  }
-
   static async handleStart(ctx) {
     try {
       const welcomeMessage = `
-👑 *SALMAN DEV OFFICIAL AI* 👑
+👑 *SALMAN DEV AI ASSISTANT* 👑
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-Welcome to the elite digital assistant for **Salman Dev**. I am engineered to provide premium support and brand representation.
+Welcome to the premium AI assistant for **Salman Dev**. I provide intelligent support and brand representation.
 
-✨ *Elite Capabilities:*
-💎 Premium Service Insights
-🔥 Exclusive Product Demos
-⚡ Instant Business Queries
-🛡️ 24/7 Brand Representation
+✨ *What I Can Do:*
+💎 Answer product & service queries
+🎵 Detect music requests
+🌤️ Check weather
+🌐 Translate messages
+🖼️ Generate images
+😂 Tell jokes
+📊 Group management
+🛡️ 24/7 Support
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-*Elite support at your fingertips.*
+*Choose an option below to get started.*
       `.trim();
 
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback('📦 Elite Products', 'view_products'),
-          Markup.button.callback('📖 User Guide', 'help_menu')
+          Markup.button.callback('📦 Products', 'view_products'),
+          Markup.button.callback('📖 Help', 'help_menu')
         ],
         [
           Markup.button.callback('🌐 Language', 'lang_selection'),
-          Markup.button.callback('🛠 Admin Panel', 'admin_menu')
+          Markup.button.callback('👤 Profile', 'my_profile')
         ],
         [
-          Markup.button.url('💬 Telegram Chat', 'https://t.me/Otakuosenpai')
+          Markup.button.callback('❓ FAQ', 'faq_menu'),
+          Markup.button.callback('🛠 Admin', 'admin_menu')
+        ],
+        [
+          Markup.button.url('💬 Contact', 'https://t.me/Otakuosenpai')
         ]
       ]);
 
@@ -230,21 +341,29 @@ Welcome to the elite digital assistant for **Salman Dev**. I am engineered to pr
   static async handleHelp(ctx) {
     try {
       const helpMessage = `
-📖 *ELITE USER GUIDE*
+📖 *USER GUIDE*
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-👤 *For Clients:*
-• Send a message in the group.
-• I will reply directly to your thread.
-• AI handles queries when Salman is Busy/Away.
+👤 *For Everyone:*
+• Send a message in the group
+• I'll reply directly to your message
+• Ask about products, services, or anything else
+
+🎵 *Music:* Type "play [song name]"
+🌤️ *Weather:* Type "weather in [city]"
+🌐 *Translate:* Type "translate to [language]: [text]"
+🖼️ *Images:* Type "generate: [description]"
+😂 *Jokes:* Type "joke"
+
+📞 *Contact:* Ask for "contact" or "portfolio"
 
 🆘 *Direct Access:*
-Contact **Salman Dev** for high-priority matters.
+Contact **Salman Dev** for urgent matters.
 ━━━━━━━━━━━━━━━━━━━━━━━━
       `.trim();
 
       const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🏠 Back to Dashboard', 'main_menu')]
+        [Markup.button.callback('🏠 Back', 'main_menu')]
       ]);
 
       if (ctx.callbackQuery) {
@@ -264,27 +383,34 @@ Contact **Salman Dev** for high-priority matters.
 🛠 *ADMIN COMMAND CENTER*
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-📝 \`/update_memory\` - Brand Intel
-📦 \`/add_product\` - New Asset
-🗑 \`/remove_product\` - Delete Asset
-🚦 \`/status\` - Presence Control
-📊 \`/view_memory\` - System Stats
-📜 \`/list_products\` - Asset Catalog
-🔄 \`/restart\` - System Reboot
+📝 \`/update_memory\` - Update brand info
+📦 \`/add_product\` - Add new product
+🗑 \`/remove_product\` - Delete product
+🚦 \`/status\` - Set online/busy/away
+📊 \`/view_memory\` - System stats
+📜 \`/list_products\` - View all products
+📢 \`/broadcast\` - Send to all users
+🛡️ \`/backup\` - Download backup
+🔄 \`/restart\` - Restart bot
+
+👥 *Group Management:*
+\`/kick @user\` - Remove user
+\`/ban @user\` - Ban user
+\`/unban @user\` - Unban user
+\`/promote @user\` - Make moderator
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-*Select an action or use commands.*
       `.trim();
 
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback('🚦 Status Control', 'status_menu'),
-          Markup.button.callback('📊 System Stats', 'view_memory_cb')
+          Markup.button.callback('🚦 Status', 'status_menu'),
+          Markup.button.callback('📊 Stats', 'view_memory_cb')
         ],
         [
-          Markup.button.callback('🔄 System Restart', 'restart_bot')
+          Markup.button.callback('🔄 Restart', 'restart_bot')
         ],
-        [Markup.button.callback('🏠 Back to Dashboard', 'main_menu')]
+        [Markup.button.callback('🏠 Back', 'main_menu')]
       ]);
 
       if (ctx.callbackQuery) {
@@ -303,7 +429,7 @@ Contact **Salman Dev** for high-priority matters.
       const products = await Product.find({ isActive: true });
 
       if (products.length === 0) {
-        const noProductsMsg = '📦 *No assets available.*';
+        const noProductsMsg = '📦 No products available at the moment.';
         const keyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Dashboard', 'main_menu')]]);
         if (ctx.callbackQuery) {
           await ctx.editMessageText(noProductsMsg, { parse_mode: 'Markdown', ...keyboard });
@@ -312,25 +438,119 @@ Contact **Salman Dev** for high-priority matters.
         return ctx.reply(noProductsMsg, { parse_mode: 'Markdown', ...keyboard });
       }
 
-      const message = `📜 *ELITE ASSET CATALOG*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n` + 
-        products.map((p, i) => 
-          `${i + 1}. 📦 *${p.name}* - ${p.price}\n` +
-          `   📝 ${p.description}\n` +
-          `   🆔 ID: \`${p._id}\``
-        ).join('\n\n');
+      // Send each product as a separate message with inline buttons
+      for (const product of products) {
+        const productMsg = `
+📦 *${product.name}*
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 ${product.description}
+
+💰 *Price:* ${product.price}
+
+${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `• ${f}`).join('\n')}\n` : ''}
+
+🆔 ID: \`${product._id}\`
+        `.trim();
+
+        const productButtons = [
+          [Markup.button.url('🔗 View Demo', product.demoUrl || 'https://t.me/Otakuosenpai')]
+        ];
+
+        if (product.contactUrl) {
+          productButtons.push([Markup.button.url('💬 Contact Seller', product.contactUrl)]);
+        }
+
+        productButtons.push([Markup.button.callback('📊 More Info', `product_${product._id}`)]);
+
+        const keyboard = Markup.inlineKeyboard(productButtons);
+
+        await ctx.reply(productMsg, {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+      }
+
+      const backKeyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Back', 'main_menu')]]);
+      await ctx.reply('━━━━━━━━━━━━━━━━━━━━━━━━\n\nEnd of products list.', { ...backKeyboard });
+
+    } catch (error) {
+      logger.error('Error in handleListProducts:', error);
+    }
+  }
+
+  static async handleMyProfile(ctx) {
+    try {
+      const user = await UserService.getOrCreateUser(ctx);
+      
+      const joinedDate = new Date(user.joinedAt).toLocaleDateString();
+      const interactionDays = Math.floor((Date.now() - user.joinedAt) / (1000 * 60 * 60 * 24));
+
+      const profileMsg = `
+👤 *YOUR PROFILE*
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+👤 *Name:* ${user.firstName || 'Unknown'} ${user.lastName || ''}
+🆔 *ID:* \`${user.telegramId}\`
+🌐 *Language:* ${user.language || 'Not set'}
+
+📊 *Statistics:*
+💬 Messages: ${user.messageCount}
+🎵 Songs Requested: ${user.songsRequested || 0}
+📅 Joined: ${joinedDate}
+⏱️ Active for: ${interactionDays} days
+
+${user.feedbackRating ? `⭐ Your Rating: ${user.feedbackRating}/5` : '⭐ No rating yet'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+      `.trim();
 
       const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🏠 Back to Dashboard', 'main_menu')]
+        [Markup.button.callback('⭐ Rate Bot', 'rate_bot')],
+        [Markup.button.callback('🏠 Back', 'main_menu')]
       ]);
 
       if (ctx.callbackQuery) {
-        await ctx.editMessageText(message, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.editMessageText(profileMsg, { parse_mode: 'Markdown', ...keyboard });
         await ctx.answerCbQuery();
       } else {
-        await ctx.reply(message, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.reply(profileMsg, { parse_mode: 'Markdown', ...keyboard });
       }
     } catch (error) {
-      logger.error('Error in handleListProducts:', error);
+      logger.error('Error in handleMyProfile:', error);
+    }
+  }
+
+  static async handleFAQ(ctx) {
+    try {
+      const memory = await BrandMemory.getMemory();
+      
+      if (!memory.faqs || memory.faqs.length === 0) {
+        const noFaqMsg = '❓ No FAQs available yet.';
+        const keyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Back', 'main_menu')]]);
+        if (ctx.callbackQuery) {
+          await ctx.editMessageText(noFaqMsg, { parse_mode: 'Markdown', ...keyboard });
+          return ctx.answerCbQuery();
+        }
+        return ctx.reply(noFaqMsg, { parse_mode: 'Markdown', ...keyboard });
+      }
+
+      let faqText = '❓ *FREQUENTLY ASKED QUESTIONS*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+      
+      for (let i = 0; i < memory.faqs.length; i++) {
+        faqText += `*${i + 1}. ${memory.faqs[i].question}*\n${memory.faqs[i].answer}\n\n`;
+      }
+
+      const keyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Back', 'main_menu')]]);
+
+      if (ctx.callbackQuery) {
+        await ctx.editMessageText(faqText, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.answerCbQuery();
+      } else {
+        await ctx.reply(faqText, { parse_mode: 'Markdown', ...keyboard });
+      }
+    } catch (error) {
+      logger.error('Error in handleFAQ:', error);
     }
   }
 }

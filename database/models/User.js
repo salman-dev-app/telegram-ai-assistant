@@ -56,7 +56,30 @@ const userSchema = new mongoose.Schema({
   lastMessages: [{
     content: String,
     timestamp: Date
-  }]
+  }],
+  // New: feedback rating
+  feedbackRating: {
+    type: Number,
+    default: null,
+    min: 1,
+    max: 5
+  },
+  // New: reminders
+  reminders: [{
+    text: String,
+    remindAt: Date,
+    sent: { type: Boolean, default: false }
+  }],
+  // New: join date
+  joinedAt: {
+    type: Date,
+    default: Date.now
+  },
+  // New: total songs requested
+  songsRequested: {
+    type: Number,
+    default: 0
+  }
 }, {
   timestamps: true
 });
@@ -66,7 +89,7 @@ userSchema.index({ lastInteraction: -1 });
 
 // Method to update conversation context
 userSchema.methods.updateContext = function(newContext) {
-  this.conversationContext = newContext.slice(-500); // Keep last 500 chars
+  this.conversationContext = newContext.slice(-800);
   this.lastInteraction = Date.now();
   return this.save();
 };
@@ -75,7 +98,7 @@ userSchema.methods.updateContext = function(newContext) {
 userSchema.methods.checkSpam = function(message) {
   const now = Date.now();
   const recentMessages = this.lastMessages.filter(
-    msg => now - msg.timestamp < 60000 // Last minute
+    msg => now - msg.timestamp < 60000
   );
   
   const sameMessages = recentMessages.filter(
@@ -92,9 +115,8 @@ userSchema.methods.addMessage = function(content) {
     timestamp: Date.now()
   });
   
-  // Keep only last 10 messages
-  if (this.lastMessages.length > 10) {
-    this.lastMessages = this.lastMessages.slice(-10);
+  if (this.lastMessages.length > 15) {
+    this.lastMessages = this.lastMessages.slice(-15);
   }
   
   this.messageCount++;
