@@ -3,6 +3,7 @@ import { Template } from '../database/models/Template.js';
 import { GroupSettings } from '../database/models/GroupSettings.js';
 import { Product } from '../database/models/Product.js';
 import { User } from '../database/models/User.js';
+import { logger } from './logger.js';
 
 export class DashboardManager {
   // Main Dashboard State

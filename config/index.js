@@ -29,5 +29,10 @@ export const config = {
   },
   weather: {
     apiKey: process.env.WEATHER_API_KEY || null,
+  },
+  imageGeneration: {
+    stabilityApiKey: process.env.STABILITY_API_KEY || null,
+    huggingFaceApiKey: process.env.HUGGING_FACE_API_KEY || null,
+    replicateApiKey: process.env.REPLICATE_API_KEY || null,
   }
 };

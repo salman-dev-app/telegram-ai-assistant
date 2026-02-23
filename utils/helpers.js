@@ -175,27 +175,9 @@ export async function getWeather(city, apiKey) {
 // IMAGE GENERATION HELPER - AUTO DETECTION
 // =============================================
 export async function generateImage(prompt, apiKey) {
-  if (!apiKey) {
-    return null;
-  }
-  
-  try {
-    const { default: axios } = await import('axios');
-    
-    const response = await axios.post(
-      'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2',
-      { inputs: prompt },
-      {
-        headers: { Authorization: `Bearer ${apiKey}` },
-        timeout: 30000,
-        responseType: 'arraybuffer'
-      }
-    );
-    
-    return response.data;
-  } catch (error) {
-    return null;
-  }
+  const { ImageGenerator } = await import('./imageGenerator.js');
+  const config = apiKey ? { huggingFaceApiKey: apiKey } : {};
+  return ImageGenerator.generateImage(prompt, config);
 }
 
 export function detectImageRequest(message) {
