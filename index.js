@@ -1,4 +1,4 @@
-import { Telegraf } from 'telegraf';
+import { Telegraf, Markup } from 'telegraf';
 import http from 'http';
 import { config } from './config/index.js';
 import { connectDatabase } from './database/connection.js';
@@ -356,11 +356,15 @@ const startBot = async () => {
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
+    logger.info('Launching bot...');
     await bot.launch({
       polling: {
-        allowedUpdates: ['message', 'callback_query'],
+        allowedUpdates: ['message', 'callback_query', 'chat_member'],
         dropPendingUpdates: true
       }
+    }).catch(err => {
+      logger.error('Error during bot.launch():', err);
+      throw err;
     });
     
     logger.info('🤖 Bot started successfully!');

@@ -41,7 +41,12 @@ const productSchema = new mongoose.Schema({
   contactUrl: {
     type: String,
     default: 'https://t.me/Otakuosenpai'
-  }
+  },
+  files: [{
+    fileName: String,
+    fileDescription: String,
+    fileUrl: String
+  }]
 }, {
   timestamps: true
 });
