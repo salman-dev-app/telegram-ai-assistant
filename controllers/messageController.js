@@ -54,7 +54,7 @@ export class MessageController {
       const brandMemory = await BrandMemory.getMemory();
       
       // If Salman is ONLINE, the bot should NOT respond to anyone
-      if (brandMemory.status === 'online') {
+      if (brandMemory && brandMemory.status === 'online') {
         logger.info('Salman is ONLINE. Bot is silent.');
         return;
       }

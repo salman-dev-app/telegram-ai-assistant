@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logger } from '../../utils/logger.js';
 
 const brandMemorySchema = new mongoose.Schema({
   key: {
@@ -81,11 +82,16 @@ ${this.customNotes ? `Additional Notes: ${this.customNotes}` : ''}
 
 // Static method to get or create memory
 brandMemorySchema.statics.getMemory = async function() {
-  let memory = await this.findOne({ key: 'salman_dev_memory' });
-  if (!memory) {
-    memory = await this.create({ key: 'salman_dev_memory' });
+  try {
+    let memory = await this.findOne({ key: 'salman_dev_memory' });
+    if (!memory) {
+      memory = await this.create({ key: 'salman_dev_memory' });
+    }
+    return memory;
+  } catch (error) {
+    logger.error('Error in getMemory:', error);
+    return null;
   }
-  return memory;
 };
 
 export const BrandMemory = mongoose.model('BrandMemory', brandMemorySchema);

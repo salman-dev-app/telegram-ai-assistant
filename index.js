@@ -36,23 +36,14 @@ async function bootstrap() {
   try {
     logger.info('Checking environment configuration...');
     // Validate environment variables
-    if (!config.telegram.botToken) {
-      logger.error('TELEGRAM_BOT_TOKEN is not set');
-      process.exit(1);
-    }
+    const missingVars = [];
+    if (!config.telegram.botToken) missingVars.push('TELEGRAM_BOT_TOKEN');
+    if (!config.telegram.adminId) missingVars.push('ADMIN_TELEGRAM_ID');
+    if (!config.openRouter.apiKey) missingVars.push('OPENROUTER_API_KEY');
+    if (!config.mongodb.uri) missingVars.push('MONGODB_URI');
 
-    if (!config.telegram.adminId) {
-      logger.error('ADMIN_TELEGRAM_ID is not set');
-      process.exit(1);
-    }
-
-    if (!config.openRouter.apiKey) {
-      logger.error('OPENROUTER_API_KEY is not set');
-      process.exit(1);
-    }
-
-    if (!config.mongodb.uri) {
-      logger.error('MONGODB_URI is not set');
+    if (missingVars.length > 0) {
+      logger.error(`CRITICAL: Missing environment variables: ${missingVars.join(', ')}`);
       process.exit(1);
     }
 
@@ -346,6 +337,34 @@ ${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `�
     
     logger.info('🤖 Bot started successfully!');
     logger.info(`📋 Admin ID: ${config.telegram.adminId}`);
+
+    // ===== DASHBOARD CALLBACKS =====
+    bot.action('dash_main', DashboardManager.renderMainDashboard);
+    bot.action('dash_templates', DashboardManager.renderTemplatesPanel);
+    bot.action(/^dash_cat_(.+)$/, async (ctx) => {
+      const category = ctx.match[1];
+      await DashboardManager.renderCategoryPanel(ctx, category);
+    });
+    bot.action(/^dash_tmpl_nav_(.+)_(.+)$/, async (ctx) => {
+      const category = ctx.match[1];
+      const index = parseInt(ctx.match[2]);
+      const templates = await Template.getByCategory(category);
+      await DashboardManager.renderSingleTemplatePanel(ctx, templates, index, category);
+    });
+    bot.action(/^dash_tmpl_info_(.+)$/, async (ctx) => {
+      const templateId = ctx.match[1];
+      await DashboardManager.renderTemplateInfoPanel(ctx, templateId);
+    });
+    bot.action(/^dash_file_(.+)_(.+)$/, async (ctx) => {
+      const templateId = ctx.match[1];
+      const fileIndex = parseInt(ctx.match[2]);
+      await DashboardManager.renderFileInfoPanel(ctx, templateId, fileIndex);
+    });
+    bot.action('dash_settings', DashboardManager.renderSettingsPanel);
+    bot.action('dash_profile', DashboardManager.renderProfilePanel);
+    bot.action('dash_group', GroupController.showGroupStats);
+    bot.action('dash_help', MessageController.handleHelp);
+    bot.action('dash_admin', isAdmin, MessageController.handleAdminMenu);
 
     // ===== PRODUCT BROWSER CALLBACKS =====
     bot.action('prod_list_0', async (ctx) => {
