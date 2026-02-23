@@ -94,13 +94,13 @@ async function bootstrap() {
     });
 
     // ===== CALLBACKS - USER ACTIONS =====
-    bot.action('main_menu', MessageController.handleStart);
+    bot.action('main_menu', DashboardManager.renderMainDashboard);
     bot.action('help_menu', MessageController.handleHelp);
-    bot.action('view_products', MessageController.handleListProducts);
+    bot.action('view_products', (ctx) => ProductBrowser.showProductList(ctx, 0));
     bot.action('lang_selection', MessageController.showLanguageSelection);
     bot.action(/^lang_/, MessageController.handleLanguageSelection);
     bot.action('contact_card', MessageController.sendContactCard);
-    bot.action('my_profile', MessageController.handleMyProfile);
+    bot.action('my_profile', DashboardManager.renderProfilePanel);
     bot.action('faq_menu', MessageController.handleFAQ);
     bot.action('command_stats', isAdmin, AdminController.handleCommandStats);
 
@@ -141,16 +141,36 @@ async function bootstrap() {
     bot.action('another_joke', async (ctx) => {
       const { getRandomJoke } = await import('./utils/helpers.js');
       const joke = getRandomJoke();
-      await ctx.editMessageText(`😂 ${joke}`);
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('😂 Another Joke', 'another_joke')],
+        [Markup.button.callback('🏠 Menu', 'dash_main')]
+      ]);
+      await ctx.editMessageText(`😂 ${joke}`, keyboard);
       await ctx.answerCbQuery();
     });
 
     bot.action('another_quote', async (ctx) => {
       const { getQuoteOfTheDay } = await import('./utils/helpers.js');
       const quote = getQuoteOfTheDay();
-      await ctx.editMessageText(`💡 *Quote of the Day:*\n\n"${quote}"`, { parse_mode: 'Markdown' });
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.callback('💡 Another Quote', 'another_quote')],
+        [Markup.button.callback('🏠 Menu', 'dash_main')]
+      ]);
+      await ctx.editMessageText(`💡 *Quote of the Day:*\n\n"${quote}"`, { parse_mode: 'Markdown', ...keyboard });
       await ctx.answerCbQuery();
     });
+
+    // Additional Dashboard Actions
+    bot.action('dash_lang', MessageController.showLanguageSelection);
+    bot.action('dash_notif', (ctx) => ctx.answerCbQuery('Notifications toggled!'));
+    bot.action('dash_theme', (ctx) => ctx.answerCbQuery('Theme changed!'));
+    bot.action('dash_privacy', (ctx) => ctx.answerCbQuery('Privacy settings updated!'));
+    bot.action('view_faqs', MessageController.handleFAQ);
+    bot.action('search_faq', (ctx) => ctx.answerCbQuery('Use /help to find FAQs'));
+    bot.action('search_products', (ctx) => ctx.answerCbQuery('Type your search query!'));
+    bot.action('top_products', (ctx) => ProductBrowser.showProductList(ctx, 0));
+    bot.action('retry_action', (ctx) => DashboardManager.renderMainDashboard(ctx));
+    bot.action('contact_support', MessageController.sendContactCard);
 
     // ===== RATING CALLBACK =====
     bot.action('rate_bot', async (ctx) => {

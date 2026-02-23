@@ -176,8 +176,15 @@ export async function getWeather(city, apiKey) {
 // =============================================
 export async function generateImage(prompt, apiKey) {
   const { ImageGenerator } = await import('./imageGenerator.js');
-  const config = apiKey ? { huggingFaceApiKey: apiKey } : {};
-  return ImageGenerator.generateImage(prompt, config);
+  const { config: appConfig } = await import('../config/index.js');
+  
+  const genConfig = {
+    stabilityApiKey: apiKey || appConfig.imageGeneration.stabilityApiKey,
+    huggingFaceApiKey: apiKey || appConfig.imageGeneration.huggingFaceApiKey,
+    replicateApiKey: apiKey || appConfig.imageGeneration.replicateApiKey
+  };
+  
+  return ImageGenerator.generateImage(prompt, genConfig);
 }
 
 export function detectImageRequest(message) {

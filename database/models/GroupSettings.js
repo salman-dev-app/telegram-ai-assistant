@@ -72,15 +72,18 @@ const groupSettingsSchema = new mongoose.Schema({
 
 // Add warning to user
 groupSettingsSchema.methods.addWarning = async function(userId, reason) {
-  let userWarning = this.userWarnings.find(w => w.userId === userId);
+  const userIndex = this.userWarnings.findIndex(w => w.userId === userId);
   
-  if (!userWarning) {
-    userWarning = { userId, warningCount: 0, warnings: [] };
-    this.userWarnings.push(userWarning);
+  if (userIndex === -1) {
+    this.userWarnings.push({ 
+      userId, 
+      warningCount: 1, 
+      warnings: [{ reason, date: new Date() }] 
+    });
+  } else {
+    this.userWarnings[userIndex].warningCount += 1;
+    this.userWarnings[userIndex].warnings.push({ reason, date: new Date() });
   }
-  
-  userWarning.warningCount += 1;
-  userWarning.warnings.push({ reason, date: new Date() });
   
   return this.save();
 };
@@ -95,12 +98,12 @@ groupSettingsSchema.methods.getUserWarnings = function(userId) {
 groupSettingsSchema.methods.muteUser = async function(userId, reason, durationMinutes = 60) {
   const unmuteAt = new Date(Date.now() + durationMinutes * 60 * 1000);
   
-  let mutedUser = this.mutedUsers.find(m => m.userId === userId);
-  if (!mutedUser) {
-    mutedUser = { userId, reason, mutedAt: new Date(), unmuteAt };
-    this.mutedUsers.push(mutedUser);
+  const userIndex = this.mutedUsers.findIndex(m => m.userId === userId);
+  if (userIndex === -1) {
+    this.mutedUsers.push({ userId, reason, mutedAt: new Date(), unmuteAt });
   } else {
-    mutedUser.unmuteAt = unmuteAt;
+    this.mutedUsers[userIndex].unmuteAt = unmuteAt;
+    this.mutedUsers[userIndex].reason = reason;
   }
   
   return this.save();

@@ -45,14 +45,14 @@ export class ImageGenerator {
   static async generateWithHuggingFace(prompt, apiKey) {
     try {
       const response = await axios.post(
-        'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3',
+        'https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev',
         { inputs: prompt },
         {
           headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
           },
-          timeout: 60000,
+          timeout: 120000,
           responseType: 'arraybuffer'
         }
       );

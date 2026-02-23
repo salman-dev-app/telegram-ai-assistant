@@ -45,9 +45,12 @@ export class MessageController {
   static async handleMessage(ctx) {
     try {
       if (!ctx.message || !ctx.chat) return;
-      // Only respond in groups
-      if (ctx.chat.type !== 'group' && ctx.chat.type !== 'supergroup') {
-        return;
+      // Handle private chats differently
+      if (ctx.chat.type === 'private') {
+        // If it's a command, let the command handlers handle it
+        if (ctx.message.text?.startsWith('/')) return;
+        // Otherwise, show the dashboard
+        return MessageController.handleStart(ctx);
       }
 
       // Get brand memory to check status
@@ -119,16 +122,19 @@ export class MessageController {
       if (imagePrompt) {
         await CommandStats.trackCommand('image_generation', user.telegramId, 'Image Generation');
         await user.addMessage(message);
-        const imageApiKey = process.env.HUGGING_FACE_API_KEY || null;
         
-        if (!imageApiKey) {
+        const hfKey = config.imageGeneration.huggingFaceApiKey;
+        const stabilityKey = config.imageGeneration.stabilityApiKey;
+        
+        if (!hfKey && !stabilityKey) {
           return ctx.reply('🖼️ Image generation API not configured. Please contact admin.', {
             reply_to_message_id: ctx.message.message_id
           });
         }
         
         await ctx.sendChatAction('upload_photo');
-        const imageBuffer = await generateImage(imagePrompt, imageApiKey);
+        // Passing null as second arg to use config inside generateImage
+        const imageBuffer = await generateImage(imagePrompt, null);
         
         if (imageBuffer) {
           return ctx.replyWithPhoto({ source: imageBuffer }, {

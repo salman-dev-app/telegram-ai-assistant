@@ -5,10 +5,11 @@ import { logger } from '../utils/logger.js';
 export class GroqAI {
   constructor() {
     this.apiKey = config.openRouter.apiKey;
-    this.baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
-    this.models = [
-      'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant'
+    this.baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
+    this.models = config.openRouter.models || [
+      'openai/gpt-oss-120b:free',
+      'stepfun/step-3.5-flash:free',
+      'meta-llama/llama-3.2-3b-instruct:free'
     ];
   }
 
@@ -39,7 +40,9 @@ export class GroqAI {
         {
           headers: {
             'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://github.com/salman-dev-app/telegram-ai-assistant',
+            'X-Title': 'Salman Dev AI Assistant'
           },
           timeout: 12000
         }
