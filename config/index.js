@@ -12,10 +12,13 @@ export const config = {
   openRouter: {
     apiKey: process.env.OPENROUTER_API_KEY,
     baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
+    // Confirmed working free models on OpenRouter (Feb 2026)
     models: [
-      'openai/gpt-oss-120b:free',
-      'stepfun/step-3.5-flash:free',
-      'meta-llama/llama-3.2-3b-instruct:free'
+      'google/gemini-2.0-flash-exp:free',
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'deepseek/deepseek-r1:free',
+      'qwen/qwen-2.5-72b-instruct:free',
+      'mistralai/mistral-7b-instruct:free'
     ]
   },
   mongodb: {

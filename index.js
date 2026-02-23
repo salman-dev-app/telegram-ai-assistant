@@ -20,10 +20,10 @@ import { AIResponseFormatter } from './utils/aiResponseFormatter.js';
 import { ProductBrowser } from './utils/productBrowser.js';
 import { StrictResponseFormatter } from './utils/strictResponseFormatter.js';
 
-// Global Error Handlers (Moved to the top)
+// ===== GLOBAL ERROR HANDLERS =====
 process.on('unhandledRejection', (reason, promise) => {
   console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
-  logger.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('CRITICAL: Unhandled Rejection at:', { reason });
 });
 
 process.on('uncaughtException', (error) => {
@@ -35,7 +35,8 @@ process.on('uncaughtException', (error) => {
 async function bootstrap() {
   try {
     logger.info('Checking environment configuration...');
-    // Validate environment variables
+
+    // Validate required environment variables
     const missingVars = [];
     if (!config.telegram.botToken) missingVars.push('TELEGRAM_BOT_TOKEN');
     if (!config.telegram.adminId) missingVars.push('ADMIN_TELEGRAM_ID');
@@ -47,18 +48,22 @@ async function bootstrap() {
       process.exit(1);
     }
 
-    // Initialize bot
+    // ===== INIT BOT =====
     logger.info('Initializing Telegraf bot...');
     const bot = new Telegraf(config.telegram.botToken);
 
-    // Connect to database
+    // ===== CONNECT DATABASE =====
     logger.info('Connecting to MongoDB...');
     await connectDatabase();
     logger.info('Database connection phase completed.');
 
-    // Error handling
+    // ===== BOT ERROR HANDLER =====
     bot.catch((err, ctx) => {
-      logger.error('Bot instance error:', err);
+      logger.error(`Bot error for update ${ctx?.update?.update_id}:`, err);
+      // Try to answer callback queries that errored to prevent "loading" spinner
+      if (ctx?.callbackQuery) {
+        ctx.answerCbQuery('An error occurred. Please try again.').catch(() => {});
+      }
     });
 
     // ===== COMMANDS =====
@@ -75,14 +80,10 @@ async function bootstrap() {
     bot.command('list_products', isAdmin, AdminController.handleListProducts);
     bot.command('broadcast', isAdmin, AdminController.handleBroadcast);
     bot.command('backup', isAdmin, AdminController.handleBackup);
-
-    // ===== NEW: GROUP MANAGEMENT COMMANDS =====
     bot.command('kick', isAdmin, AdminController.handleKickUser);
     bot.command('ban', isAdmin, AdminController.handleBanUser);
     bot.command('unban', isAdmin, AdminController.handleUnbanUser);
     bot.command('promote', isAdmin, AdminController.handlePromoteUser);
-
-    // ===== NEW: FAQ MANAGEMENT COMMANDS =====
     bot.command('add_faq', isAdmin, AdminController.handleAddFAQ);
     bot.command('remove_faq', isAdmin, AdminController.handleRemoveFAQ);
 
@@ -121,13 +122,17 @@ async function bootstrap() {
       process.exit(0);
     });
 
-    // ===== NEW: QUICK ACTION CALLBACKS =====
+    // ===== QUICK ACTION CALLBACKS =====
     bot.action('play_another', async (ctx) => {
       await ctx.answerCbQuery('Ready for another song! Just say "play [song name]"');
     });
 
     bot.action('stop_music', async (ctx) => {
       await ctx.answerCbQuery('Music stopped!');
+    });
+
+    bot.action('music_playlist', async (ctx) => {
+      await ctx.answerCbQuery('Just say "play [song name]" to add to your playlist!');
     });
 
     bot.action('check_weather', async (ctx) => {
@@ -138,6 +143,26 @@ async function bootstrap() {
       await ctx.answerCbQuery('Say "tomorrow weather in [city]"');
     });
 
+    bot.action('weather_forecast', async (ctx) => {
+      await ctx.answerCbQuery('Say "weather in [city]" for a forecast!');
+    });
+
+    bot.action('generate_another', async (ctx) => {
+      await ctx.answerCbQuery('Say "generate: [description]" to create another image!');
+    });
+
+    bot.action('modify_image', async (ctx) => {
+      await ctx.answerCbQuery('Say "generate: [new description]" to create a new image!');
+    });
+
+    bot.action('funny_pics', async (ctx) => {
+      await ctx.answerCbQuery('Say "generate: funny [description]" for a funny image!');
+    });
+
+    bot.action('share_quote', async (ctx) => {
+      await ctx.answerCbQuery('Copy the quote above to share it!');
+    });
+
     bot.action('another_joke', async (ctx) => {
       const { getRandomJoke } = await import('./utils/helpers.js');
       const joke = getRandomJoke();
@@ -145,7 +170,11 @@ async function bootstrap() {
         [Markup.button.callback('😂 Another Joke', 'another_joke')],
         [Markup.button.callback('🏠 Menu', 'dash_main')]
       ]);
-      await ctx.editMessageText(`😂 ${joke}`, keyboard);
+      try {
+        await ctx.editMessageText(`😂 ${joke}`, keyboard);
+      } catch (e) {
+        await ctx.reply(`😂 ${joke}`, keyboard);
+      }
       await ctx.answerCbQuery();
     });
 
@@ -156,23 +185,78 @@ async function bootstrap() {
         [Markup.button.callback('💡 Another Quote', 'another_quote')],
         [Markup.button.callback('🏠 Menu', 'dash_main')]
       ]);
-      await ctx.editMessageText(`💡 *Quote of the Day:*\n\n"${quote}"`, { parse_mode: 'Markdown', ...keyboard });
+      try {
+        await ctx.editMessageText(`💡 *Quote of the Day:*\n\n"${quote}"`, { parse_mode: 'Markdown', ...keyboard });
+      } catch (e) {
+        await ctx.reply(`💡 *Quote of the Day:*\n\n"${quote}"`, { parse_mode: 'Markdown', ...keyboard });
+      }
       await ctx.answerCbQuery();
     });
 
-    // Additional Dashboard Actions
+    // ===== CONFIRM / CANCEL CALLBACKS =====
+    bot.action('confirm_yes', async (ctx) => {
+      await ctx.answerCbQuery('Confirmed!');
+      await ctx.editMessageText('✅ *Action confirmed.*', { parse_mode: 'Markdown' }).catch(() => {});
+    });
+
+    bot.action('confirm_no', async (ctx) => {
+      await ctx.answerCbQuery('Cancelled.');
+      await ctx.editMessageText('❌ *Action cancelled.*', { parse_mode: 'Markdown' }).catch(() => {});
+    });
+
+    // ===== DASHBOARD ACTIONS =====
+    bot.action('dash_main', DashboardManager.renderMainDashboard);
+    bot.action('dash_templates', DashboardManager.renderTemplatesPanel);
+    bot.action('dash_settings', DashboardManager.renderSettingsPanel);
+    bot.action('dash_profile', DashboardManager.renderProfilePanel);
+    bot.action('dash_group', GroupController.showGroupStats);
+    bot.action('dash_help', MessageController.handleHelp);
+    bot.action('dash_admin', isAdmin, MessageController.handleAdminMenu);
     bot.action('dash_lang', MessageController.showLanguageSelection);
     bot.action('dash_notif', (ctx) => ctx.answerCbQuery('Notifications toggled!'));
     bot.action('dash_theme', (ctx) => ctx.answerCbQuery('Theme changed!'));
     bot.action('dash_privacy', (ctx) => ctx.answerCbQuery('Privacy settings updated!'));
-    bot.action('view_faqs', MessageController.handleFAQ);
-    bot.action('search_faq', (ctx) => ctx.answerCbQuery('Use /help to find FAQs'));
-    bot.action('search_products', (ctx) => ctx.answerCbQuery('Type your search query!'));
-    bot.action('top_products', (ctx) => ProductBrowser.showProductList(ctx, 0));
-    bot.action('retry_action', (ctx) => DashboardManager.renderMainDashboard(ctx));
-    bot.action('contact_support', MessageController.sendContactCard);
 
-    // ===== RATING CALLBACK =====
+    // ===== PROFILE ACTIONS =====
+    bot.action('dash_rate', async (ctx) => {
+      try {
+        const keyboard = Markup.inlineKeyboard([
+          [
+            Markup.button.callback('⭐ 1', 'rate_1'),
+            Markup.button.callback('⭐⭐ 2', 'rate_2'),
+            Markup.button.callback('⭐⭐⭐ 3', 'rate_3')
+          ],
+          [
+            Markup.button.callback('⭐⭐⭐⭐ 4', 'rate_4'),
+            Markup.button.callback('⭐⭐⭐⭐⭐ 5', 'rate_5')
+          ],
+          [Markup.button.callback('⬅️ Back', 'dash_profile')]
+        ]);
+        await ctx.editMessageText('⭐ *How would you rate this bot?*\n\nYour feedback helps us improve!', {
+          parse_mode: 'Markdown',
+          ...keyboard
+        });
+        await ctx.answerCbQuery();
+      } catch (error) {
+        logger.error('Error in dash_rate callback:', error);
+        await ctx.answerCbQuery('Error opening rating');
+      }
+    });
+
+    bot.action('dash_stats', async (ctx) => {
+      try {
+        const user = await User.findOne({ telegramId: ctx.from.id });
+        const statsMsg = `📊 *YOUR STATISTICS*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n💬 Messages: ${user?.messageCount || 0}\n🎵 Songs Requested: ${user?.songsRequested || 0}\n⭐ Rating: ${user?.feedbackRating ? `${user.feedbackRating}/5` : 'Not rated yet'}`;
+        const keyboard = Markup.inlineKeyboard([[Markup.button.callback('⬅️ Back', 'dash_profile')]]);
+        await ctx.editMessageText(statsMsg, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.answerCbQuery();
+      } catch (error) {
+        logger.error('Error in dash_stats callback:', error);
+        await ctx.answerCbQuery('Error loading stats');
+      }
+    });
+
+    // ===== RATE BOT CALLBACK =====
     bot.action('rate_bot', async (ctx) => {
       try {
         const keyboard = Markup.inlineKeyboard([
@@ -184,9 +268,9 @@ async function bootstrap() {
           [
             Markup.button.callback('⭐⭐⭐⭐ 4', 'rate_4'),
             Markup.button.callback('⭐⭐⭐⭐⭐ 5', 'rate_5')
-          ]
+          ],
+          [Markup.button.callback('⬅️ Back', 'dash_profile')]
         ]);
-
         await ctx.editMessageText('⭐ *How would you rate this bot?*\n\nYour feedback helps us improve!', {
           parse_mode: 'Markdown',
           ...keyboard
@@ -194,6 +278,7 @@ async function bootstrap() {
         await ctx.answerCbQuery();
       } catch (error) {
         logger.error('Error in rate_bot callback:', error);
+        await ctx.answerCbQuery('Error opening rating');
       }
     });
 
@@ -206,24 +291,27 @@ async function bootstrap() {
             user.feedbackRating = i;
             await user.save();
           }
-          
-          await ctx.editMessageText(`✅ *Thank you for rating us ${i}/5!*\\n\\nYour feedback is valuable to us. 😊`, {
-            parse_mode: 'Markdown'
+
+          const keyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Menu', 'dash_main')]]);
+          await ctx.editMessageText(`✅ *Thank you for rating us ${i}/5!*\n\nYour feedback is valuable to us. 😊`, {
+            parse_mode: 'Markdown',
+            ...keyboard
           });
           await ctx.answerCbQuery('Rating saved!');
           logger.info(`User ${ctx.from.id} rated bot: ${i}/5`);
         } catch (error) {
           logger.error('Error in rating handler:', error);
+          await ctx.answerCbQuery('Error saving rating');
         }
       });
     }
 
-    // ===== PRODUCT INFO CALLBACK =====
+    // ===== PRODUCT INFO CALLBACK (legacy product_ prefix) =====
     bot.action(/^product_/, async (ctx) => {
       try {
         const productId = ctx.callbackQuery.data.replace('product_', '');
         const product = await Product.findById(productId);
-        
+
         if (!product) {
           return ctx.answerCbQuery('Product not found');
         }
@@ -240,7 +328,6 @@ async function bootstrap() {
 💰 *Price:* ${product.price}
 
 ${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `• ${f}`).join('\n')}\n` : ''}
-
 👁️ *Views:* ${product.viewCount}
 
 🆔 ID: \`${product._id}\`
@@ -289,6 +376,85 @@ ${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `�
       await GroupController.toggleSetting(ctx, 'anticaps');
     });
 
+    // ===== FAQ CALLBACKS =====
+    bot.action('view_faqs', MessageController.handleFAQ);
+    bot.action('search_faq', (ctx) => ctx.answerCbQuery('Use /help to find FAQs'));
+
+    // ===== PRODUCT BROWSER CALLBACKS =====
+    bot.action('search_products', (ctx) => ctx.answerCbQuery('Type your search query!'));
+    bot.action('top_products', (ctx) => ProductBrowser.showProductList(ctx, 0));
+    bot.action('retry_action', (ctx) => DashboardManager.renderMainDashboard(ctx));
+    bot.action('contact_support', MessageController.sendContactCard);
+
+    bot.action(/^prod_list_(\d+)$/, async (ctx) => {
+      const page = parseInt(ctx.match[1]);
+      await ProductBrowser.showProductList(ctx, page);
+    });
+
+    bot.action(/^prod_select_/, async (ctx) => {
+      const productId = ctx.callbackQuery.data.replace('prod_select_', '');
+      await ProductBrowser.showProductDetails(ctx, productId);
+    });
+
+    bot.action(/^prod_desc_/, async (ctx) => {
+      const productId = ctx.callbackQuery.data.replace('prod_desc_', '');
+      await ProductBrowser.showProductDescription(ctx, productId);
+    });
+
+    bot.action(/^prod_files_/, async (ctx) => {
+      const productId = ctx.callbackQuery.data.replace('prod_files_', '');
+      await ProductBrowser.showProductFiles(ctx, productId);
+    });
+
+    bot.action(/^prod_file_/, async (ctx) => {
+      const data = ctx.callbackQuery.data.replace('prod_file_', '');
+      const lastUnderscore = data.lastIndexOf('_');
+      const productId = data.substring(0, lastUnderscore);
+      const fileIndex = parseInt(data.substring(lastUnderscore + 1));
+      await ProductBrowser.showFileDetails(ctx, productId, fileIndex);
+    });
+
+    // ===== DASHBOARD CATEGORY/TEMPLATE CALLBACKS =====
+    bot.action(/^dash_cat_(.+)$/, async (ctx) => {
+      const category = ctx.match[1];
+      await DashboardManager.renderCategoryPanel(ctx, category);
+    });
+
+    bot.action(/^dash_tmpl_nav_(.+)_(\d+)$/, async (ctx) => {
+      const category = ctx.match[1];
+      const index = parseInt(ctx.match[2]);
+      const templates = await Template.getByCategory(category);
+      await DashboardManager.renderSingleTemplatePanel(ctx, templates, index, category);
+    });
+
+    bot.action(/^dash_tmpl_info_(.+)$/, async (ctx) => {
+      const templateId = ctx.match[1];
+      await DashboardManager.renderTemplateInfoPanel(ctx, templateId);
+    });
+
+    bot.action(/^dash_file_(.+)_(\d+)$/, async (ctx) => {
+      const templateId = ctx.match[1];
+      const fileIndex = parseInt(ctx.match[2]);
+      await DashboardManager.renderFileInfoPanel(ctx, templateId, fileIndex);
+    });
+
+    bot.action(/^dash_tmpl_demo_(.+)$/, async (ctx) => {
+      const templateId = ctx.match[1];
+      const template = await Template.findById(templateId);
+      if (!template || !template.demoUrl) {
+        return ctx.answerCbQuery('Demo not available for this template');
+      }
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.url('🔗 Open Demo', template.demoUrl)],
+        [Markup.button.callback('⬅️ Back', `dash_tmpl_info_${templateId}`)]
+      ]);
+      await ctx.editMessageText(`🔗 *Demo Available*\n\nClick the button below to view the demo.`, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+      await ctx.answerCbQuery();
+    });
+
     // ===== MESSAGE HANDLING WITH RATE LIMITING =====
     bot.on('text', rateLimitMiddleware, async (ctx) => {
       const allowed = await GroupController.checkAutoModeration(ctx);
@@ -312,7 +478,7 @@ ${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `�
     });
 
     // ===== HTTP SERVER FOR HEALTH CHECKS =====
-    const PORT = process.env.PORT || 3000;
+    const PORT = parseInt(process.env.PORT) || 8000;
     const server = http.createServer((req, res) => {
       if (req.url === '/health') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -328,95 +494,77 @@ ${product.features.length > 0 ? `✨ *Features:*\n${product.features.map(f => `�
     });
 
     // ===== GRACEFUL SHUTDOWN =====
-    const shutdown = (signal) => {
+    const shutdown = async (signal) => {
       logger.info(`${signal} received, stopping bot...`);
-      bot.stop(signal);
+      try {
+        await bot.stop(signal);
+      } catch (e) {
+        // ignore
+      }
       server.close(() => {
         logger.info('HTTP server closed');
         process.exit(0);
       });
+      // Force exit after 5 seconds if server doesn't close
+      setTimeout(() => process.exit(0), 5000);
     };
 
     process.once('SIGINT', () => shutdown('SIGINT'));
     process.once('SIGTERM', () => shutdown('SIGTERM'));
 
-    // ===== START BOT =====
-    logger.info('Clearing webhooks...');
-    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
-    
-    logger.info('Waiting for safety delay...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // ===== LAUNCH BOT =====
+    // Determine launch mode: webhook (preferred for Koyeb) or polling
+    const WEBHOOK_URL = process.env.WEBHOOK_URL; // e.g. https://your-app.koyeb.app
 
-    logger.info('Launching bot instance...');
-    await bot.launch({
-      polling: {
-        allowedUpdates: ['message', 'callback_query', 'chat_member'],
-        dropPendingUpdates: true
-      }
-    });
-    
-    logger.info('🤖 Bot started successfully!');
+    if (WEBHOOK_URL) {
+      // ===== WEBHOOK MODE (Recommended for Koyeb) =====
+      logger.info('Launching bot in WEBHOOK mode...');
+
+      // Delete any existing webhook/polling session first
+      await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+
+      const webhookPath = `/webhook/${config.telegram.botToken}`;
+      const fullWebhookUrl = `${WEBHOOK_URL}${webhookPath}`;
+
+      // Attach webhook handler to the existing HTTP server
+      const webhookCallback = await bot.createWebhook({ domain: WEBHOOK_URL, path: webhookPath });
+
+      // Replace the simple HTTP server with one that handles both health and webhook
+      server.removeAllListeners('request');
+      server.on('request', (req, res) => {
+        if (req.url === webhookPath) {
+          webhookCallback(req, res);
+        } else if (req.url === '/health') {
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end('OK');
+        } else {
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end('Bot is running\n');
+        }
+      });
+
+      logger.info(`🤖 Bot started in WEBHOOK mode!`);
+      logger.info(`📡 Webhook URL: ${fullWebhookUrl}`);
+    } else {
+      // ===== POLLING MODE (Fallback / Local Development) =====
+      logger.info('Clearing webhooks...');
+      await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+
+      logger.info('Waiting for safety delay...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      logger.info('Launching bot in POLLING mode...');
+      await bot.launch({
+        polling: {
+          allowedUpdates: ['message', 'callback_query', 'chat_member'],
+          dropPendingUpdates: true
+        }
+      });
+
+      logger.info('🤖 Bot started in POLLING mode!');
+    }
+
     logger.info(`📋 Admin ID: ${config.telegram.adminId}`);
-
-    // ===== DASHBOARD CALLBACKS =====
-    bot.action('dash_main', DashboardManager.renderMainDashboard);
-    bot.action('dash_templates', DashboardManager.renderTemplatesPanel);
-    bot.action(/^dash_cat_(.+)$/, async (ctx) => {
-      const category = ctx.match[1];
-      await DashboardManager.renderCategoryPanel(ctx, category);
-    });
-    bot.action(/^dash_tmpl_nav_(.+)_(.+)$/, async (ctx) => {
-      const category = ctx.match[1];
-      const index = parseInt(ctx.match[2]);
-      const templates = await Template.getByCategory(category);
-      await DashboardManager.renderSingleTemplatePanel(ctx, templates, index, category);
-    });
-    bot.action(/^dash_tmpl_info_(.+)$/, async (ctx) => {
-      const templateId = ctx.match[1];
-      await DashboardManager.renderTemplateInfoPanel(ctx, templateId);
-    });
-    bot.action(/^dash_file_(.+)_(.+)$/, async (ctx) => {
-      const templateId = ctx.match[1];
-      const fileIndex = parseInt(ctx.match[2]);
-      await DashboardManager.renderFileInfoPanel(ctx, templateId, fileIndex);
-    });
-    bot.action('dash_settings', DashboardManager.renderSettingsPanel);
-    bot.action('dash_profile', DashboardManager.renderProfilePanel);
-    bot.action('dash_group', GroupController.showGroupStats);
-    bot.action('dash_help', MessageController.handleHelp);
-    bot.action('dash_admin', isAdmin, MessageController.handleAdminMenu);
-
-    // ===== PRODUCT BROWSER CALLBACKS =====
-    bot.action('prod_list_0', async (ctx) => {
-      await ProductBrowser.showProductList(ctx, 0);
-    });
-
-    bot.action(/^prod_list_(\d+)$/, async (ctx) => {
-      const page = parseInt(ctx.match[1]);
-      await ProductBrowser.showProductList(ctx, page);
-    });
-
-    bot.action(/^prod_select_/, async (ctx) => {
-      const productId = ctx.callbackQuery.data.replace('prod_select_', '');
-      await ProductBrowser.showProductDetails(ctx, productId);
-    });
-
-    bot.action(/^prod_desc_/, async (ctx) => {
-      const productId = ctx.callbackQuery.data.replace('prod_desc_', '');
-      await ProductBrowser.showProductDescription(ctx, productId);
-    });
-
-    bot.action(/^prod_files_/, async (ctx) => {
-      const productId = ctx.callbackQuery.data.replace('prod_files_', '');
-      await ProductBrowser.showProductFiles(ctx, productId);
-    });
-
-    bot.action(/^prod_file_/, async (ctx) => {
-      const data = ctx.callbackQuery.data.replace('prod_file_', '').split('_');
-      const productId = data[0];
-      const fileIndex = parseInt(data[1]);
-      await ProductBrowser.showFileDetails(ctx, productId, fileIndex);
-    });
 
   } catch (err) {
     console.error('BOOTSTRAP ERROR:', err);

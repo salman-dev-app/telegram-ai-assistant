@@ -1,12 +1,33 @@
 name: telegram-ai-assistant
 services:
   - name: bot
-    type: worker
-    image: node:18-slim
+    type: web
+    git:
+      repository: github.com/salman-dev-app/telegram-ai-assistant
+      branch: main
     build:
-      type: git
-      command: npm install && npm start
+      buildCommand: npm install
+    run:
+      command: node index.js
+    ports:
+      - port: 8000
+        protocol: http
+    health_checks:
+      - http:
+          path: /health
+          port: 8000
     env:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "8000"
+      - key: LOG_LEVEL
+        value: info
+      # Set WEBHOOK_URL to your Koyeb app public URL, e.g.:
+      # https://telegram-ai-assistant-<your-org>.koyeb.app
+      # Leave empty to fall back to polling mode (not recommended on Koyeb)
+      - key: WEBHOOK_URL
+        value: ""
       - key: TELEGRAM_BOT_TOKEN
         type: secret
       - key: ADMIN_TELEGRAM_ID
@@ -15,12 +36,6 @@ services:
         type: secret
       - key: MONGODB_URI
         type: secret
-      - key: PORT
-        value: "8000"
-    health_checks:
-      - http:
-          path: /health
-          port: 8000
     scaling:
       min: 1
       max: 1
