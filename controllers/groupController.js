@@ -156,13 +156,24 @@ export class GroupController {
       // Auto-kick if max warnings reached
       if (warnings >= maxWarnings && groupSettings.autoModeration.autoKickAfterWarnings) {
         try {
+          // Check if user is an admin/owner before kicking
+          const chatMember = await ctx.getChatMember(userId);
+          if (chatMember.status === 'creator' || chatMember.status === 'administrator') {
+            logger.warn(`Cannot kick admin/owner ${userId} from group ${ctx.chat.id}`);
+            return;
+          }
+
           await ctx.telegram.kickChatMember(ctx.chat.id, userId);
           const kickMsg = `🚫 User kicked for exceeding warning limit (${warnings} warnings)`;
           await ctx.reply(kickMsg, { parse_mode: 'Markdown' });
           groupSettings.stats.usersKicked += 1;
           await groupSettings.save();
         } catch (err) {
-          logger.error('Could not kick user:', err);
+          if (err.description?.includes("can't remove chat owner")) {
+            logger.warn(`Skipping kick for chat owner ${userId}`);
+          } else {
+            logger.error('Could not kick user:', err);
+          }
         }
       }
     } catch (error) {

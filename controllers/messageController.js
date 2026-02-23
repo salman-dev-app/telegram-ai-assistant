@@ -1,4 +1,5 @@
 import { Markup } from 'telegraf';
+import { config } from '../config/index.js';
 import { UserService } from '../services/userService.js';
 import { BrandMemory } from '../database/models/BrandMemory.js';
 import { Product } from '../database/models/Product.js';
