@@ -7,9 +7,11 @@ export class GroqAI {
     this.apiKey = config.openRouter.apiKey;
     this.baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
     this.models = config.openRouter.models || [
-      'openai/gpt-oss-120b:free',
-      'stepfun/step-3.5-flash:free',
-      'meta-llama/llama-3.2-3b-instruct:free'
+      'google/gemini-2.0-flash-exp:free',
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'deepseek/deepseek-r1:free',
+      'qwen/qwen-2.5-72b-instruct:free',
+      'mistralai/mistral-7b-instruct:free'
     ];
   }
 
@@ -22,7 +24,7 @@ export class GroqAI {
     }
 
     try {
-      logger.info(`Attempting AI request with Groq model: ${currentModel}`);
+      logger.info(`Attempting AI request with model: ${currentModel}`);
       
       const systemPrompt = this.getSystemPrompt(userLanguage);
       
@@ -34,8 +36,8 @@ export class GroqAI {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          max_tokens: 200,
-          temperature: 0.75,
+          max_tokens: 500,
+          temperature: 0.7,
         },
         {
           headers: {
@@ -44,25 +46,26 @@ export class GroqAI {
             'HTTP-Referer': 'https://github.com/salman-dev-app/telegram-ai-assistant',
             'X-Title': 'Salman Dev AI Assistant'
           },
-          timeout: 12000
+          timeout: 20000 // Increased timeout for free models
         }
       );
 
       const aiResponse = response.data.choices[0]?.message?.content?.trim();
       
       if (!aiResponse) {
-        throw new Error('Empty response from Groq');
+        throw new Error('Empty response from model');
       }
 
-      logger.info(`Groq response generated successfully with ${currentModel}`);
+      logger.info(`AI response generated successfully with ${currentModel}`);
       return aiResponse;
 
     } catch (error) {
       const errorMessage = error.response?.data?.error?.message || error.message;
-      logger.error(`Groq request failed with ${currentModel}: ${errorMessage}`);
+      logger.error(`AI request failed with ${currentModel}: ${errorMessage}`);
       
+      // If the error is about model endpoints or provider errors, try next model
       if (retryCount < this.models.length - 1) {
-        logger.info(`Falling back to next Groq model...`);
+        logger.info(`Falling back to next model...`);
         return this.generateResponse(prompt, userLanguage, retryCount + 1);
       }
       

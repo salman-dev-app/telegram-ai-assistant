@@ -1,4 +1,3 @@
-import { Markup } from 'telegraf';
 import { BrandMemory } from '../database/models/BrandMemory.js';
 import { Product } from '../database/models/Product.js';
 import { User } from '../database/models/User.js';
@@ -65,18 +64,16 @@ export class AdminController {
           memory.customNotes = value;
           break;
         default:
-          return ctx.reply('❌ Invalid field. Use: about, services, offers, availability, or notes');
+          return ctx.reply('❌ Invalid field. Available: about, services, offers, availability, notes');
       }
 
-      memory.lastUpdated = Date.now();
       await memory.save();
-
-      logger.info(`Brand memory updated by admin: ${field}`);
-      ctx.reply(`✅ *Updated Successfully!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n💎 *Field:* ${field}\n💎 *Value:* ${value}`, { parse_mode: 'Markdown' });
+      ctx.reply(`✅ *Brand info updated:* ${field}`, { parse_mode: 'Markdown' });
+      logger.info(`Admin updated brand memory: ${field}`);
 
     } catch (error) {
       logger.error('Error in handleUpdateMemory:', error);
-      ctx.reply('❌ Failed to update memory. Please try again.');
+      ctx.reply('❌ Failed to update brand info.');
     }
   }
 
@@ -88,12 +85,11 @@ export class AdminController {
       
       if (!text) {
         return ctx.reply(
-          '🛍️ *ADD NEW PRODUCT*\n' +
+          '📦 *ADD NEW PRODUCT*\n' +
           '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-          'Usage: `/add_product [name] | [description] | [price] | [features] | [demo_url]`\n\n' +
+          'Usage: `/add_product [Name] | [Price] | [Description] | [Features, comma-sep]`\n\n' +
           '💡 *Example:*\n' +
-          '`/add_product Elite Bot | Custom AI for business | $1000 | 24/7 support, Multi-language | https://demo.com`\n\n' +
-          '⚠️ *Note:* Features should be comma-separated.',
+          '`/add_product My Script | $50 | Awesome script | fast, secure, easy`',
           { parse_mode: 'Markdown' }
         );
       }
@@ -101,38 +97,32 @@ export class AdminController {
       const parts = text.split('|').map(p => p.trim());
       
       if (parts.length < 3) {
-        return ctx.reply('❌ Invalid format. Provide at least: name | description | price');
+        return ctx.reply('❌ Invalid format. Please provide at least Name, Price, and Description.');
       }
 
-      const [name, description, price, featuresStr, demoUrl] = parts;
+      const [name, price, description, features] = parts;
       
-      const features = featuresStr 
-        ? featuresStr.split(',').map(f => f.trim())
-        : [];
-
       const product = await Product.create({
         name,
-        description,
         price,
-        features,
-        demoUrl: demoUrl || null
+        description,
+        features: features ? features.split(',').map(f => f.trim()) : [],
+        isActive: true
       });
 
-      logger.info(`Product added by admin: ${name}`);
-      
       ctx.reply(
         `✅ *Product Added!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `📦 *${product.name}*\n` +
-        `💰 *Price:* ${product.price}\n` +
-        `📝 *Description:* ${product.description}\n` +
-        `${features.length > 0 ? `✨ *Features:* ${features.join(', ')}\n` : ''}` +
-        `${demoUrl ? `🔗 *Demo:* ${demoUrl}` : ''}`,
+        `📦 *Name:* ${name}\n` +
+        `💰 *Price:* ${price}\n` +
+        `🆔 *ID:* \`${product._id}\``,
         { parse_mode: 'Markdown' }
       );
+      
+      logger.info(`New product added by admin: ${name}`);
 
     } catch (error) {
       logger.error('Error in handleAddProduct:', error);
-      ctx.reply('❌ Failed to add product. Please try again.');
+      ctx.reply('❌ Failed to add product.');
     }
   }
 
@@ -152,6 +142,11 @@ export class AdminController {
         );
       }
 
+      // Check if text is a valid ObjectId before querying
+      if (!text.match(/^[0-9a-fA-F]{24}$/)) {
+        return ctx.reply('❌ Invalid Product ID format. ID must be a 24-character hex string.');
+      }
+
       const product = await Product.findById(text);
       
       if (!product) {
@@ -162,12 +157,18 @@ export class AdminController {
       
       logger.info(`Product removed by admin: ${product.name}`);
       
+      // Escape product name to prevent Markdown parsing errors
+      const escapedName = product.name.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+      
       ctx.reply(
         `✅ *Product Removed!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `📦 *Name:* ${product.name}\n` +
+        `📦 *Name:* ${escapedName}\n` +
         `🆔 *ID:* \`${text}\``,
         { parse_mode: 'Markdown' }
-      );
+      ).catch(async () => {
+        // Fallback to plain text if Markdown fails
+        await ctx.reply(`✅ Product Removed!\nName: ${product.name}\nID: ${text}`);
+      });
 
     } catch (error) {
       logger.error('Error in handleRemoveProduct:', error);
@@ -177,72 +178,57 @@ export class AdminController {
 
   static async handleStatus(ctx) {
     try {
-      const keyboard = Markup.inlineKeyboard([
-        [
-          Markup.button.callback('🟢 Online', 'status_online'),
-          Markup.button.callback('🟡 Busy', 'status_busy'),
-          Markup.button.callback('🔴 Away', 'status_away')
-        ],
-        [Markup.button.callback('🛠 Admin Menu', 'admin_menu')]
-      ]);
+      await CommandStats.trackCommand('status_command', ctx.from.id, 'Status Command');
+      
+      const text = ctx.message?.text?.replace('/status', '').trim().toLowerCase();
+      const memory = await BrandMemory.getMemory();
 
-      const text = '🚦 *PRESENCE CONTROL*\n' +
-                   '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-                   'Select your status:\n\n' +
-                   '🟢 *Online:* Bot is silent. You handle all.\n' +
-                   '🟡 *Busy:* AI handles queries. You are busy.\n' +
-                   '🔴 *Away:* AI handles all. You are offline.';
+      if (!text) {
+        const keyboard = [
+          [
+            Markup.button.callback('🟢 Online', 'status_online'),
+            Markup.button.callback('🟡 Busy', 'status_busy'),
+            Markup.button.callback('🔴 Away', 'status_away')
+          ]
+        ];
 
-      if (ctx.callbackQuery) {
-        await ctx.editMessageText(text, { parse_mode: 'Markdown', ...keyboard });
-        await ctx.answerCbQuery();
-      } else {
-        await ctx.reply(text, { parse_mode: 'Markdown', ...keyboard });
+        return ctx.reply(
+          `🚦 *CURRENT STATUS:* ${memory.status.toUpperCase()}\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          'Choose your current status:',
+          { 
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard(keyboard)
+          }
+        );
       }
+
+      if (['online', 'busy', 'away'].includes(text)) {
+        memory.status = text;
+        await memory.save();
+        ctx.reply(`✅ *Status updated to:* ${text.toUpperCase()}`, { parse_mode: 'Markdown' });
+        logger.info(`Admin updated status to: ${text}`);
+      } else {
+        ctx.reply('❌ Invalid status. Choose: online, busy, away');
+      }
+
     } catch (error) {
       logger.error('Error in handleStatus:', error);
-      ctx.reply('❌ Failed to open status control.');
     }
   }
 
   static async handleStatusCallback(ctx) {
     try {
       const status = ctx.callbackQuery.data.replace('status_', '');
-      await CommandStats.trackCommand('status_change', ctx.from.id, `Status: ${status}`);
-      
       const memory = await BrandMemory.getMemory();
+      
       memory.status = status;
       await memory.save();
-
-      const statusEmoji = {
-        online: '🟢',
-        busy: '🟡',
-        away: '🔴'
-      };
-
-      const statusText = {
-        online: 'ONLINE (Bot Silent)',
-        busy: 'BUSY (AI Assisting)',
-        away: 'AWAY (AI Handling All)'
-      };
-
-      const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🚦 Back', 'status_menu')],
-        [Markup.button.callback('🏠 Main Menu', 'main_menu')]
-      ]);
-
-      await ctx.editMessageText(
-        `✅ *Status Updated!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `${statusEmoji[status]} *New Status:* **${statusText[status]}**`,
-        { parse_mode: 'Markdown', ...keyboard }
-      );
-
-      await ctx.answerCbQuery(`Status set to ${status.toUpperCase()}`);
-      logger.info(`Status updated: ${status}`);
-
+      
+      await ctx.editMessageText(`✅ *Status updated to:* ${status.toUpperCase()}`, { parse_mode: 'Markdown' });
+      await ctx.answerCbQuery(`Status: ${status}`);
+      logger.info(`Admin updated status via callback: ${status}`);
     } catch (error) {
       logger.error('Error in handleStatusCallback:', error);
-      ctx.answerCbQuery('Error updating status');
     }
   }
 
@@ -251,48 +237,214 @@ export class AdminController {
       await CommandStats.trackCommand('view_memory', ctx.from.id, 'View Memory');
       
       const memory = await BrandMemory.getMemory();
-      const products = await Product.find({ isActive: true });
-      const userCount = await User.countDocuments();
+      const productsCount = await Product.countDocuments({ isActive: true });
+      const usersCount = await User.countDocuments();
 
-      const statusEmoji = {
-        online: '🟢',
-        busy: '🟡',
-        away: '🔴'
-      };
-
-      const message = `
-📊 *SYSTEM ANALYTICS*
+      const memoryMsg = `
+📊 *SYSTEM STATISTICS*
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-🚦 *Status:* ${statusEmoji[memory.status]} **${memory.status.toUpperCase()}**
-👥 *Total Users:* **${userCount}**
-📦 *Active Products:* **${products.length}**
+👤 *Users:* ${usersCount}
+📦 *Products:* ${productsCount}
+🚦 *Status:* ${memory.status.toUpperCase()}
 
-👤 *Brand Info:*
-${memory.getFormattedMemory()}
+📝 *About:*
+${memory.about}
 
-━━━━━━━━━━━━━━━━━━━━━━━━
-🕒 *Last Updated:* ${memory.lastUpdated.toLocaleString()}
+🛠 *Services:*
+${memory.services.join(', ')}
+
+📅 *Last Updated:* ${new Date(memory.lastUpdated).toLocaleString()}
       `.trim();
 
       const keyboard = Markup.inlineKeyboard([
-        [
-          Markup.button.callback('📢 Broadcast', 'broadcast_menu'),
-          Markup.button.callback('🛡️ Backup', 'backup_system')
-        ],
-        [Markup.button.callback('🛠 Admin Menu', 'admin_menu')],
-        [Markup.button.callback('🏠 Main Menu', 'main_menu')]
+        [Markup.button.callback('🏠 Back', 'admin_menu')]
       ]);
 
       if (ctx.callbackQuery) {
-        await ctx.editMessageText(message, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.editMessageText(memoryMsg, { parse_mode: 'Markdown', ...keyboard });
         await ctx.answerCbQuery();
       } else {
-        await ctx.reply(message, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.reply(memoryMsg, { parse_mode: 'Markdown', ...keyboard });
       }
     } catch (error) {
       logger.error('Error in handleViewMemory:', error);
-      ctx.reply('❌ Failed to retrieve memory.');
+    }
+  }
+
+  static async handleBroadcast(ctx) {
+    try {
+      await CommandStats.trackCommand('broadcast_command', ctx.from.id, 'Broadcast');
+      
+      const text = ctx.message.text.replace('/broadcast', '').trim();
+      
+      if (!text) {
+        return ctx.reply('❌ Usage: `/broadcast [your message]`', { parse_mode: 'Markdown' });
+      }
+
+      const users = await User.find();
+      let successCount = 0;
+      let failCount = 0;
+
+      ctx.reply(`📢 *Starting broadcast to ${users.length} users...*`, { parse_mode: 'Markdown' });
+
+      for (const user of users) {
+        try {
+          await ctx.telegram.sendMessage(user.telegramId, text, { parse_mode: 'Markdown' });
+          successCount++;
+          // Small delay to avoid Telegram rate limits
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (err) {
+          failCount++;
+        }
+      }
+
+      ctx.reply(
+        `✅ *Broadcast Completed!*\n━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🟢 Success: ${successCount}\n` +
+        `🔴 Failed: ${failCount}`,
+        { parse_mode: 'Markdown' }
+      );
+      
+      logger.info(`Admin broadcast sent to ${successCount} users`);
+
+    } catch (error) {
+      logger.error('Error in handleBroadcast:', error);
+      ctx.reply('❌ Broadcast failed.');
+    }
+  }
+
+  static async handleBackup(ctx) {
+    try {
+      await CommandStats.trackCommand('backup_command', ctx.from.id, 'Backup');
+      
+      const products = await Product.find();
+      const memory = await BrandMemory.findOne();
+      
+      const backupData = {
+        products,
+        memory,
+        timestamp: new Date().toISOString()
+      };
+
+      const backupPath = path.join(process.cwd(), 'backup.json');
+      fs.writeFileSync(backupPath, JSON.stringify(backupData, null, 2));
+
+      await ctx.replyWithDocument({ source: backupPath, filename: `backup_${new Date().getTime()}.json` }, {
+        caption: '🛡️ *SYSTEM BACKUP*\n\nContains products and brand memory.',
+        parse_mode: 'Markdown'
+      });
+
+      fs.unlinkSync(backupPath);
+      logger.info('System backup generated and sent to admin');
+
+    } catch (error) {
+      logger.error('Error in handleBackup:', error);
+      ctx.reply('❌ Backup failed.');
+    }
+  }
+
+  static async handleKickUser(ctx) {
+    try {
+      const text = ctx.message.text.replace('/kick', '').trim();
+      if (!text) return ctx.reply('❌ Usage: `/kick @username` or `/kick [user_id]`');
+      
+      const success = await kickUser(ctx, text);
+      if (success) {
+        ctx.reply(`👢 *User kicked successfully.*`, { parse_mode: 'Markdown' });
+      } else {
+        ctx.reply('❌ Failed to kick user. Make sure I have admin rights and the user is in the group.');
+      }
+    } catch (error) {
+      logger.error('Error in handleKickUser:', error);
+    }
+  }
+
+  static async handleBanUser(ctx) {
+    try {
+      const text = ctx.message.text.replace('/ban', '').trim();
+      if (!text) return ctx.reply('❌ Usage: `/ban @username` or `/ban [user_id]`');
+      
+      const success = await banUser(ctx, text);
+      if (success) {
+        ctx.reply(`🚫 *User banned successfully.*`, { parse_mode: 'Markdown' });
+      } else {
+        ctx.reply('❌ Failed to ban user.');
+      }
+    } catch (error) {
+      logger.error('Error in handleBanUser:', error);
+    }
+  }
+
+  static async handleUnbanUser(ctx) {
+    try {
+      const text = ctx.message.text.replace('/unban', '').trim();
+      if (!text) return ctx.reply('❌ Usage: `/unban @username` or `/unban [user_id]`');
+      
+      const success = await unbanUser(ctx, text);
+      if (success) {
+        ctx.reply(`✅ *User unbanned successfully.*`, { parse_mode: 'Markdown' });
+      } else {
+        ctx.reply('❌ Failed to unban user.');
+      }
+    } catch (error) {
+      logger.error('Error in handleUnbanUser:', error);
+    }
+  }
+
+  static async handlePromoteUser(ctx) {
+    try {
+      const text = ctx.message.text.replace('/promote', '').trim();
+      if (!text) return ctx.reply('❌ Usage: `/promote @username` or `/promote [user_id]`');
+      
+      const success = await promoteModerator(ctx, text);
+      if (success) {
+        ctx.reply(`⭐ *User promoted to moderator.*`, { parse_mode: 'Markdown' });
+      } else {
+        ctx.reply('❌ Failed to promote user.');
+      }
+    } catch (error) {
+      logger.error('Error in handlePromoteUser:', error);
+    }
+  }
+
+  static async handleAddFAQ(ctx) {
+    try {
+      const text = ctx.message.text.replace('/add_faq', '').trim();
+      if (!text || !text.includes('|')) {
+        return ctx.reply('❌ Usage: `/add_faq [Question] | [Answer]`');
+      }
+
+      const [question, answer] = text.split('|').map(t => t.trim());
+      const memory = await BrandMemory.getMemory();
+      
+      memory.faqs.push({ question, answer });
+      await memory.save();
+
+      ctx.reply('✅ *FAQ added successfully.*', { parse_mode: 'Markdown' });
+    } catch (error) {
+      logger.error('Error in handleAddFAQ:', error);
+    }
+  }
+
+  static async handleRemoveFAQ(ctx) {
+    try {
+      const text = ctx.message.text.replace('/remove_faq', '').trim();
+      if (!text) return ctx.reply('❌ Usage: `/remove_faq [index]`');
+
+      const index = parseInt(text) - 1;
+      const memory = await BrandMemory.getMemory();
+      
+      if (isNaN(index) || index < 0 || index >= memory.faqs.length) {
+        return ctx.reply('❌ Invalid index.');
+      }
+
+      memory.faqs.splice(index, 1);
+      await memory.save();
+
+      ctx.reply('✅ *FAQ removed successfully.*', { parse_mode: 'Markdown' });
+    } catch (error) {
+      logger.error('Error in handleRemoveFAQ:', error);
     }
   }
 
@@ -307,8 +459,8 @@ ${memory.getFormattedMemory()}
       }
 
       const message = products.map((p, i) => 
-        `${i + 1}. 📦 *${p.name}* - ${p.price}\n` +
-        `   📝 ${p.description}\n` +
+        `${i + 1}. 📦 *${p.name.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1')}*\n` +
+        `   📝 ${p.description.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1')}\n` +
         `   👁️ Views: ${p.viewCount}\n` +
         `   🆔 ID: \`${p._id}\``
       ).join('\n\n');
@@ -329,27 +481,23 @@ ${memory.getFormattedMemory()}
     }
   }
 
-  // ===== NEW: COMMAND STATISTICS =====
   static async handleCommandStats(ctx) {
     try {
-      await CommandStats.trackCommand('view_stats', ctx.from.id, 'View Stats');
+      await CommandStats.trackCommand('command_stats', ctx.from.id, 'View Stats');
       
-      const topCommands = await CommandStats.getTopCommands(15);
+      const topCommands = await CommandStats.getTopCommands(10);
       
       if (topCommands.length === 0) {
-        const keyboard = Markup.inlineKeyboard([[Markup.button.callback('🏠 Back', 'admin_menu')]]);
-        return ctx.editMessageText('📈 No command statistics yet.', { ...keyboard });
+        return ctx.reply('📊 No command statistics available yet.');
       }
 
-      let statsMsg = '📈 *COMMAND STATISTICS*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+      let statsMsg = '📈 *TOP COMMANDS USAGE*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
       
-      for (let i = 0; i < topCommands.length; i++) {
-        const cmd = topCommands[i];
-        statsMsg += `${i + 1}. *${cmd.commandName}*\n   Total: ${cmd.count} | Users: ${cmd.users.length}\n\n`;
-      }
+      topCommands.forEach((stat, index) => {
+        statsMsg += `${index + 1}. \`${stat.commandName}\`: ${stat.count} uses\n`;
+      });
 
       const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback('🔄 Refresh', 'command_stats')],
         [Markup.button.callback('🏠 Back', 'admin_menu')]
       ]);
 
@@ -361,248 +509,6 @@ ${memory.getFormattedMemory()}
       }
     } catch (error) {
       logger.error('Error in handleCommandStats:', error);
-    }
-  }
-
-  static async handleBroadcast(ctx) {
-    try {
-      await CommandStats.trackCommand('broadcast', ctx.from.id, 'Broadcast');
-      
-      const text = ctx.message.text.replace('/broadcast', '').trim();
-      if (!text) {
-        return ctx.reply(
-          '📢 *BROADCAST SYSTEM*\n' +
-          '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-          'Usage: `/broadcast [your message]`\n\n' +
-          'This will send a message to ALL users.',
-          { parse_mode: 'Markdown' }
-        );
-      }
-
-      const users = await User.find({ isBlocked: false });
-      let successCount = 0;
-      let failCount = 0;
-
-      await ctx.reply(`📢 *Broadcasting to ${users.length} users...*`, { parse_mode: 'Markdown' });
-
-      for (const user of users) {
-        try {
-          await ctx.telegram.sendMessage(user.telegramId, `📢 *BROADCAST FROM SALMAN DEV*\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n${text}`, { parse_mode: 'Markdown' });
-          successCount++;
-          await new Promise(resolve => setTimeout(resolve, 50));
-        } catch (err) {
-          failCount++;
-          logger.error(`Broadcast failed for user ${user.telegramId}`);
-        }
-      }
-
-      await ctx.reply(`✅ *Broadcast Complete!*\n\n🚀 Success: ${successCount}\n❌ Failed: ${failCount}`, { parse_mode: 'Markdown' });
-    } catch (error) {
-      logger.error('Error in handleBroadcast:', error);
-      ctx.reply('❌ Broadcast failed.');
-    }
-  }
-
-  static async handleBackup(ctx) {
-    try {
-      await CommandStats.trackCommand('backup', ctx.from.id, 'Backup');
-      
-      const memory = await BrandMemory.find();
-      const products = await Product.find();
-      const users = await User.find();
-
-      const backupData = {
-        timestamp: new Date().toISOString(),
-        brandMemory: memory,
-        products: products,
-        users: users.map(u => ({
-          telegramId: u.telegramId,
-          username: u.username,
-          language: u.language,
-          messageCount: u.messageCount
-        }))
-      };
-
-      const fileName = `backup_${new Date().toISOString().split('T')[0]}.json`;
-      const backupDir = path.join(process.cwd(), 'backups');
-      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
-      const filePath = path.join(backupDir, fileName);
-      
-      fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2));
-
-      await ctx.replyWithDocument({ source: filePath, filename: fileName }, {
-        caption: '🛡️ *SYSTEM BACKUP COMPLETE*\n\nThis file contains all your data.',
-        parse_mode: 'Markdown'
-      }).catch(err => logger.error('Error sending backup document:', err));
-
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      if (ctx.callbackQuery) await ctx.answerCbQuery('Backup sent!');
-    } catch (error) {
-      logger.error('Error in handleBackup:', error);
-      ctx.reply('❌ Failed to create backup.');
-    }
-  }
-
-  // ===== GROUP MANAGEMENT =====
-  static async handleKickUser(ctx) {
-    try {
-      await CommandStats.trackCommand('kick_user', ctx.from.id, 'Kick User');
-      
-      const text = ctx.message.text.replace('/kick', '').trim();
-      
-      if (!text) {
-        return ctx.reply('Usage: `/kick @username` or `/kick user_id`', { parse_mode: 'Markdown' });
-      }
-
-      const userId = parseInt(text) || text;
-      const success = await kickUser(ctx, userId);
-
-      if (success) {
-        ctx.reply(`✅ User kicked from the group.`);
-      } else {
-        ctx.reply(`❌ Failed to kick user. Check if user exists.`);
-      }
-    } catch (error) {
-      logger.error('Error in handleKickUser:', error);
-      ctx.reply('❌ Error kicking user.');
-    }
-  }
-
-  static async handleBanUser(ctx) {
-    try {
-      await CommandStats.trackCommand('ban_user', ctx.from.id, 'Ban User');
-      
-      const text = ctx.message.text.replace('/ban', '').trim();
-      
-      if (!text) {
-        return ctx.reply('Usage: `/ban @username` or `/ban user_id`', { parse_mode: 'Markdown' });
-      }
-
-      const userId = parseInt(text) || text;
-      const success = await banUser(ctx, userId);
-
-      if (success) {
-        ctx.reply(`✅ User banned from the group.`);
-      } else {
-        ctx.reply(`❌ Failed to ban user.`);
-      }
-    } catch (error) {
-      logger.error('Error in handleBanUser:', error);
-      ctx.reply('❌ Error banning user.');
-    }
-  }
-
-  static async handleUnbanUser(ctx) {
-    try {
-      await CommandStats.trackCommand('unban_user', ctx.from.id, 'Unban User');
-      
-      const text = ctx.message.text.replace('/unban', '').trim();
-      
-      if (!text) {
-        return ctx.reply('Usage: `/unban @username` or `/unban user_id`', { parse_mode: 'Markdown' });
-      }
-
-      const userId = parseInt(text) || text;
-      const success = await unbanUser(ctx, userId);
-
-      if (success) {
-        ctx.reply(`✅ User unbanned.`);
-      } else {
-        ctx.reply(`❌ Failed to unban user.`);
-      }
-    } catch (error) {
-      logger.error('Error in handleUnbanUser:', error);
-      ctx.reply('❌ Error unbanning user.');
-    }
-  }
-
-  static async handlePromoteUser(ctx) {
-    try {
-      await CommandStats.trackCommand('promote_user', ctx.from.id, 'Promote User');
-      
-      const text = ctx.message.text.replace('/promote', '').trim();
-      
-      if (!text) {
-        return ctx.reply('Usage: `/promote @username` or `/promote user_id`', { parse_mode: 'Markdown' });
-      }
-
-      const userId = parseInt(text) || text;
-      const success = await promoteModerator(ctx, userId);
-
-      if (success) {
-        ctx.reply(`✅ User promoted to moderator.`);
-      } else {
-        ctx.reply(`❌ Failed to promote user.`);
-      }
-    } catch (error) {
-      logger.error('Error in handlePromoteUser:', error);
-      ctx.reply('❌ Error promoting user.');
-    }
-  }
-
-  // ===== FAQ MANAGEMENT =====
-  static async handleAddFAQ(ctx) {
-    try {
-      await CommandStats.trackCommand('add_faq', ctx.from.id, 'Add FAQ');
-      
-      const text = ctx.message.text.replace('/add_faq', '').trim();
-      
-      if (!text) {
-        return ctx.reply(
-          '❓ *ADD FAQ*\n' +
-          '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-          'Usage: `/add_faq [question] | [answer]`\n\n' +
-          '💡 *Example:*\n' +
-          '`/add_faq What is your price? | Our pricing starts at $500`',
-          { parse_mode: 'Markdown' }
-        );
-      }
-
-      const parts = text.split('|').map(p => p.trim());
-      
-      if (parts.length < 2) {
-        return ctx.reply('❌ Invalid format. Use: question | answer');
-      }
-
-      const [question, answer] = parts;
-      const memory = await BrandMemory.getMemory();
-      
-      if (!memory.faqs) memory.faqs = [];
-      
-      memory.faqs.push({ question, answer });
-      await memory.save();
-
-      ctx.reply(`✅ *FAQ Added!*\n\n❓ *Q:* ${question}\n📝 *A:* ${answer}`, { parse_mode: 'Markdown' });
-    } catch (error) {
-      logger.error('Error in handleAddFAQ:', error);
-      ctx.reply('❌ Failed to add FAQ.');
-    }
-  }
-
-  static async handleRemoveFAQ(ctx) {
-    try {
-      await CommandStats.trackCommand('remove_faq', ctx.from.id, 'Remove FAQ');
-      
-      const text = ctx.message.text.replace('/remove_faq', '').trim();
-      
-      if (!text) {
-        return ctx.reply('Usage: `/remove_faq [index]` (e.g., `/remove_faq 1` for first FAQ)', { parse_mode: 'Markdown' });
-      }
-
-      const index = parseInt(text) - 1;
-      const memory = await BrandMemory.getMemory();
-      
-      if (!memory.faqs || index < 0 || index >= memory.faqs.length) {
-        return ctx.reply('❌ Invalid FAQ index.');
-      }
-
-      const removed = memory.faqs.splice(index, 1)[0];
-      await memory.save();
-
-      ctx.reply(`✅ *FAQ Removed!*\n\n❓ *Q:* ${removed.question}`, { parse_mode: 'Markdown' });
-    } catch (error) {
-      logger.error('Error in handleRemoveFAQ:', error);
-      ctx.reply('❌ Failed to remove FAQ.');
     }
   }
 }

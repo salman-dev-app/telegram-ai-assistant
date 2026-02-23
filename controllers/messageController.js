@@ -1,4 +1,3 @@
-import { Markup } from 'telegraf';
 import { config } from '../config/index.js';
 import { UserService } from '../services/userService.js';
 import { BrandMemory } from '../database/models/BrandMemory.js';
@@ -46,12 +45,35 @@ export class MessageController {
   static async handleMessage(ctx) {
     try {
       if (!ctx.message || !ctx.chat) return;
+      
+      const message = ctx.message.text;
+      if (!message) return;
+
+      // Get user or create new one
+      const user = await UserService.getOrCreateUser(ctx);
+
       // Handle private chats differently
       if (ctx.chat.type === 'private') {
         // If it's a command, let the command handlers handle it
-        if (ctx.message.text?.startsWith('/')) return;
+        if (message.startsWith('/')) return;
+        
+        // If language not selected, show language selection
+        if (!user.languageSelected) {
+          return MessageController.showLanguageSelection(ctx);
+        }
+        
         // Otherwise, show the dashboard
         return MessageController.handleStart(ctx);
+      }
+
+      // Check if user needs language selection (even in groups)
+      if (!user.languageSelected) {
+        // Only show language selection if the message is directed at the bot or is a question
+        const isDirected = await ai.shouldRespond(message, ctx.botInfo.username);
+        if (isDirected) {
+          return MessageController.showLanguageSelection(ctx);
+        }
+        return; // Don't block group chat with language selection
       }
 
       // Get brand memory to check status
@@ -63,35 +85,16 @@ export class MessageController {
         return;
       }
 
-      const user = await UserService.getOrCreateUser(ctx);
-      const message = ctx.message.text;
-
-      if (!message) return;
-
-      // Check if user needs language selection
-      if (!user.languageSelected) {
-        return MessageController.showLanguageSelection(ctx);
-      }
-
       // ===== AUTO-TRIGGER: MUSIC REQUEST =====
       const songName = detectMusicRequest(message);
       if (songName) {
         await CommandStats.trackCommand('music_request', user.telegramId, 'Music Request');
         await user.addMessage(message);
-        user.songsRequested = (user.songsRequested || 0) + 1;
-        await user.save();
         
-        // Send formatted command to music bot
-        const musicMsg = `🎵 *Music Request Detected!*\n\nNow playing: **${songName}**\n\nCommand sent to music bot:\n\`/play ${songName}\``;
-        
-        const keyboard = Markup.inlineKeyboard([
-          [Markup.button.callback('🔄 Play Another', 'play_another')],
-          [Markup.button.callback('⏹️ Stop', 'stop_music')]
-        ]);
-        
-        return ctx.reply(musicMsg, {
+        const formatted = StrictResponseFormatter.formatMusicResponse(songName);
+        return ctx.reply(formatted.text, {
           parse_mode: 'Markdown',
-          ...keyboard,
+          ...formatted.keyboard,
           reply_to_message_id: ctx.message.message_id
         });
       }
@@ -99,53 +102,40 @@ export class MessageController {
       // ===== AUTO-TRIGGER: WEATHER REQUEST =====
       const city = detectWeatherRequest(message);
       if (city) {
-        await CommandStats.trackCommand('weather_request', user.telegramId, 'Weather Check');
+        await CommandStats.trackCommand('weather_request', user.telegramId, 'Weather');
         await user.addMessage(message);
-        const weatherApiKey = process.env.WEATHER_API_KEY || null;
-        const weatherInfo = await getWeather(city, weatherApiKey);
+        const weatherData = await getWeather(city, config.weather.apiKey);
         
-        const keyboard = Markup.inlineKeyboard([
-          [Markup.button.callback('🔄 Another City', 'check_weather')],
-          [Markup.button.callback('📅 Tomorrow', 'weather_tomorrow')]
-        ]);
-        
-        return ctx.reply(weatherInfo, {
+        const formatted = StrictResponseFormatter.formatWeatherResponse(weatherData);
+        return ctx.reply(formatted.text, {
           parse_mode: 'Markdown',
-          ...keyboard,
+          ...formatted.keyboard,
           reply_to_message_id: ctx.message.message_id
         });
       }
 
-
-
       // ===== AUTO-TRIGGER: IMAGE GENERATION =====
-      const imagePrompt = detectImageRequest(message);
-      if (imagePrompt) {
-        await CommandStats.trackCommand('image_generation', user.telegramId, 'Image Generation');
+      const prompt = detectImageRequest(message);
+      if (prompt) {
+        await CommandStats.trackCommand('image_request', user.telegramId, 'Image Gen');
         await user.addMessage(message);
         
-        const hfKey = config.imageGeneration.huggingFaceApiKey;
-        const stabilityKey = config.imageGeneration.stabilityApiKey;
-        
-        if (!hfKey && !stabilityKey) {
-          return ctx.reply('🖼️ Image generation API not configured. Please contact admin.', {
-            reply_to_message_id: ctx.message.message_id
-          });
-        }
-        
-        await ctx.sendChatAction('upload_photo');
-        // Passing null as second arg to use config inside generateImage
-        const imageBuffer = await generateImage(imagePrompt, null);
-        
+        const formatted = StrictResponseFormatter.formatImageResponse(prompt);
+        await ctx.reply(formatted.text, {
+          parse_mode: 'Markdown',
+          ...formatted.keyboard,
+          reply_to_message_id: ctx.message.message_id
+        });
+
+        const imageBuffer = await generateImage(prompt, config.imageGeneration);
         if (imageBuffer) {
           return ctx.replyWithPhoto({ source: imageBuffer }, {
-            caption: `🖼️ Generated: ${imagePrompt}`,
+            caption: `✅ *Generated:* ${prompt}`,
+            parse_mode: 'Markdown',
             reply_to_message_id: ctx.message.message_id
           });
         } else {
-          return ctx.reply('❌ Could not generate image. Please try again.', {
-            reply_to_message_id: ctx.message.message_id
-          });
+          return ctx.reply('❌ Failed to generate image. Please try again.');
         }
       }
 
@@ -191,15 +181,19 @@ export class MessageController {
         return MessageController.sendContactCard(ctx);
       }
 
-      // Check for spam
+      // SPAM CHECK REMOVED AS PER USER REQUEST
+      // We still log for internal metrics but don't block or send messages
       const isSpam = await UserService.checkSpam(user.telegramId, message);
       if (isSpam) {
-        logger.warn(`Ignoring spam from user ${user.telegramId}`);
-        return;
+        logger.info(`Spam detected from user ${user.telegramId} (ignoring block)`);
       }
 
       // Add message to user history
       await UserService.addUserMessage(user.telegramId, message);
+
+      // Only respond if directed at bot or in private chat
+      const shouldRespond = await ai.shouldRespond(message, ctx.botInfo.username);
+      if (!shouldRespond && ctx.chat.type !== 'private') return;
 
       // Simulate typing delay
       const typingDelay = calculateTypingDelay(message.length);
@@ -227,11 +221,21 @@ export class MessageController {
 
       // ===== STRICT FORMATTER: ENSURE ALL RESPONSES HAVE BUTTONS =====
       const formatted = StrictResponseFormatter.formatChatResponse(aiResponse);
+      
+      // Escape special markdown characters to prevent parsing errors
+      const escapedText = formatted.text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+      
       await ctx.reply(formatted.text, {
         parse_mode: 'Markdown',
         ...formatted.keyboard,
         reply_to_message_id: ctx.message.message_id
-      }).catch(err => logger.error('Error sending AI response:', err));
+      }).catch(async (err) => {
+        logger.error('Error sending AI response (Markdown), trying plain text:', err);
+        await ctx.reply(formatted.text, {
+          ...formatted.keyboard,
+          reply_to_message_id: ctx.message.message_id
+        }).catch(e => logger.error('Final fallback failed:', e));
+      });
 
       logger.info(`Response sent to user ${user.telegramId}`);
 
@@ -280,28 +284,28 @@ export class MessageController {
     try {
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback('Bangla', 'lang_bangla'),
-          Markup.button.callback('Hindi', 'lang_hindi'),
-          Markup.button.callback('English', 'lang_english')
+          Markup.button.callback('🇧🇩 Bangla', 'lang_bangla'),
+          Markup.button.callback('🇮🇳 Hindi', 'lang_hindi'),
+          Markup.button.callback('🇬🇧 English', 'lang_english')
         ]
       ]);
 
       const text = '🌐 *SELECT YOUR LANGUAGE*\n' +
                    '━━━━━━━━━━━━━━━━━━━━━━━━\n' +
                    'Choose your preferred language:\n\n' +
-                   '🇧🇩 Bangla - Bengali in English letters\n' +
+                   '🇧🇩 Bangla - Romanized Bengali\n' +
                    '🇮🇳 Hindi - Romanized Hindi\n' +
                    '🇬🇧 English - Standard English\n' +
                    '━━━━━━━━━━━━━━━━━━━━━━━━';
 
       if (ctx.callbackQuery) {
-        await ctx.editMessageText(text, { parse_mode: 'Markdown', ...keyboard });
+        await ctx.editMessageText(text, { parse_mode: 'Markdown', ...keyboard }).catch(() => {});
       } else {
         await ctx.reply(text, {
           parse_mode: 'Markdown',
           ...keyboard,
           reply_to_message_id: ctx.message?.message_id
-        });
+        }).catch(() => {});
       }
     } catch (error) {
       logger.error('Error in showLanguageSelection:', error);

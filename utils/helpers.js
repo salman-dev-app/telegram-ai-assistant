@@ -1,4 +1,3 @@
-// =============================================
 // UI BUTTONS - English Only (No Bangla Script)
 // Three languages: English, Bangla, Hindi
 // =============================================
@@ -58,481 +57,250 @@ export const UIButtons = {
   muteUser: '🔇 Mute User',
   welcomeMsg: '👋 Welcome Message',
   groupStats: '📊 Group Stats',
-  
-  // Music
-  playMusic: '🎵 Play Music',
-  stopMusic: '⏹️ Stop Music',
-  
-  // Image & Translation
-  generateImage: '🖼️ Generate Image',
-
-  
-  // Misc
-  searchProduct: '🔍 Search Product',
-  shareBot: '📤 Share Bot',
-  dashboard: '📊 Dashboard',
-  joke: '😂 Tell Joke',
+  rules: '📋 Rules',
+  warnUser: '⚠️ Warn User',
+  unmuteUser: '🔊 Unmute User'
 };
 
 // =============================================
-// MUSIC BOT DETECTION & INTEGRATION
+// HELPER FUNCTIONS
 // =============================================
+
+// Detect music request
 export function detectMusicRequest(message) {
-  const lower = message.toLowerCase().trim();
-  
-  const patterns = [
-    /^play\s+(.+)/i,
-    /^play\s+song\s+(.+)/i,
-    /^gaan\s+baja\s+(.+)/i,
-    /^baja\s+(.+)/i,
-    /^song\s+play\s+(.+)/i,
-    /^music\s+play\s+(.+)/i,
-    /^(.+)\s+song\s+play/i,
-    /^(.+)\s+baja/i,
-    /^play\s+me\s+(.+)/i,
-    /^i\s+want\s+to\s+listen\s+(.+)/i,
-    /^play\s+this\s+(.+)/i,
-    /^(.+)\s+gaan\s+chai/i,
-    /^(.+)\s+song\s+chai/i,
+  const musicPatterns = [
+    /play\s+(.+)/i,
+    /gan\s+bajao\s+(.+)/i,
+    /shunao\s+(.+)/i,
+    /music\s+(.+)/i
   ];
-  
-  for (const pattern of patterns) {
-    const match = lower.match(pattern);
-    if (match) {
-      return match[1].trim();
-    }
+
+  for (const pattern of musicPatterns) {
+    const match = message.match(pattern);
+    if (match) return match[1].trim();
   }
-  
   return null;
 }
 
-// =============================================
-// WEATHER HELPER - AUTO DETECTION
-// =============================================
+// Detect weather request
 export function detectWeatherRequest(message) {
-  const lower = message.toLowerCase();
-  
-  const patterns = [
-    /weather\s+(?:in\s+)?(.+)/i,
-    /(.+)\s+weather/i,
-    /aabohawa\s+(.+)/i,
-    /(.+)\s+aabohawa/i,
-    /(.+)\s+er\s+weather/i,
-    /what's?\s+the\s+weather\s+(?:in\s+)?(.+)/i,
-    /weather\s+of\s+(.+)/i,
-    /how's?\s+the\s+weather\s+(?:in\s+)?(.+)/i,
-    /temperature\s+(?:in\s+)?(.+)/i,
-    /(.+)\s+temperature/i,
+  const weatherPatterns = [
+    /weather\s+in\s+(.+)/i,
+    /abohawa\s+(.+)/i,
+    /temperature\s+in\s+(.+)/i,
+    /weather\s+(.+)/i
   ];
-  
-  for (const pattern of patterns) {
-    const match = lower.match(pattern);
-    if (match) {
-      const city = match[1].trim().replace(/\?/g, '').trim();
-      if (city.length > 1 && city.length < 50) {
-        return city;
-      }
-    }
+
+  for (const pattern of weatherPatterns) {
+    const match = message.match(pattern);
+    if (match) return match[1].trim();
   }
-  
   return null;
 }
 
+// Get weather data
 export async function getWeather(city, apiKey) {
-  if (!apiKey) {
-    return `🌤️ Weather API not configured. Please contact admin to add API key.`;
-  }
-  
+  if (!apiKey) return "Weather API key not configured.";
   try {
-    const { default: axios } = await import('axios');
-    const response = await axios.get(
-      `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`,
-      { timeout: 8000 }
-    );
+    const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`);
+    const data = await response.json();
+    if (data.cod !== 200) return "City not found.";
     
-    const data = response.data;
-    const temp = Math.round(data.main.temp);
-    const feels = Math.round(data.main.feels_like);
-    const humidity = data.main.humidity;
-    const desc = data.weather[0].description;
-    const wind = data.wind.speed;
-    
-    return `🌤️ **${data.name}, ${data.sys.country}** Weather:\n\n🌡️ Temperature: ${temp}°C (feels like ${feels}°C)\n💧 Humidity: ${humidity}%\n🌬️ Wind: ${wind} m/s\n☁️ Condition: ${desc}`;
+    return `🌤️ *Weather in ${data.name}*\n\n🌡️ Temp: ${data.main.temp}°C\n💧 Humidity: ${data.main.humidity}%\n☁️ Sky: ${data.weather[0].description}`;
   } catch (error) {
-    if (error.response?.status === 404) {
-      return `❌ City "${city}" not found. Please check the spelling.`;
-    }
-    return `❌ Could not fetch weather right now. Please try again later.`;
+    return "Error fetching weather.";
   }
 }
 
-// =============================================
-// TRANSLATION HELPER - AUTO DETECTION
-// =============================================
-
-
-// =============================================
-// IMAGE GENERATION HELPER - AUTO DETECTION
-// =============================================
-export async function generateImage(prompt, apiKey) {
-  const { ImageGenerator } = await import('./imageGenerator.js');
-  const { config: appConfig } = await import('../config/index.js');
-  
-  const genConfig = {
-    stabilityApiKey: apiKey || appConfig.imageGeneration.stabilityApiKey,
-    huggingFaceApiKey: apiKey || appConfig.imageGeneration.huggingFaceApiKey,
-    replicateApiKey: apiKey || appConfig.imageGeneration.replicateApiKey
-  };
-  
-  return ImageGenerator.generateImage(prompt, genConfig);
-}
-
+// Detect image generation request
 export function detectImageRequest(message) {
-  const lower = message.toLowerCase();
-  
-  const patterns = [
-    /generate\s+image:\s*(.+)/i,
-    /create\s+image:\s*(.+)/i,
-    /draw:\s*(.+)/i,
-    /image\s+of\s+(.+)/i,
-    /generate\s+(.+)/i,
-    /create\s+(.+)/i,
-    /make\s+an?\s+image\s+of\s+(.+)/i,
-    /draw\s+me\s+(.+)/i,
-    /can\s+you\s+generate\s+(.+)/i,
-    /generate\s+a\s+picture\s+of\s+(.+)/i,
+  const imagePatterns = [
+    /generate\s*:\s*(.+)/i,
+    /image\s*:\s*(.+)/i,
+    /chobi\s*:\s*(.+)/i,
+    /make\s+image\s+of\s+(.+)/i
   ];
-  
-  for (const pattern of patterns) {
-    const match = lower.match(pattern);
-    if (match) {
-      return match[1].trim();
-    }
+
+  for (const pattern of imagePatterns) {
+    const match = message.match(pattern);
+    if (match) return match[1].trim();
   }
-  
   return null;
 }
 
-// =============================================
-// 10 NEW FEATURES
-// =============================================
-
-// 1. SENTIMENT ANALYSIS
-export function analyzeSentiment(message) {
-  const lower = message.toLowerCase();
-  
-  const positiveWords = ['good', 'great', 'awesome', 'excellent', 'love', 'amazing', 'best', 'fantastic', 'valo', 'bhalo', 'sundor', 'nice', 'perfect'];
-  const negativeWords = ['bad', 'terrible', 'awful', 'hate', 'worst', 'horrible', 'sad', 'angry', 'kharap', 'bhayanok', 'dukkito', 'upset'];
-  
-  let sentiment = 'neutral';
-  let score = 0;
-  
-  for (const word of positiveWords) {
-    if (lower.includes(word)) score++;
-  }
-  
-  for (const word of negativeWords) {
-    if (lower.includes(word)) score--;
-  }
-  
-  if (score > 0) sentiment = 'positive';
-  if (score < 0) sentiment = 'negative';
-  
-  return sentiment;
+// Generate image (Placeholder)
+export async function generateImage(prompt, config) {
+  // This would typically call an external API like Stability AI or Replicate
+  logger.info(`Generating image for prompt: ${prompt}`);
+  return null; // Return null as placeholder
 }
 
-// 2. QUOTE OF THE DAY
-const QUOTES = [
-  "The only way to do great work is to love what you do. - Steve Jobs",
-  "Innovation distinguishes between a leader and a follower. - Steve Jobs",
-  "Life is what happens when you're busy making other plans. - John Lennon",
-  "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt",
-  "It is during our darkest moments that we must focus to see the light. - Aristotle",
-  "The only impossible journey is the one you never begin. - Tony Robbins",
-  "Success is not final, failure is not fatal. - Winston Churchill",
-  "Believe you can and you're halfway there. - Theodore Roosevelt",
-  "The best time to plant a tree was 20 years ago. The second best time is now. - Chinese Proverb",
-  "Your time is limited, don't waste it living someone else's life. - Steve Jobs"
-];
+// Detect user intent
+export function detectIntent(message) {
+  const lowerMsg = message.toLowerCase();
+  if (lowerMsg.includes('help')) return 'help';
+  if (lowerMsg.includes('product') || lowerMsg.includes('script')) return 'product';
+  if (lowerMsg.includes('contact') || lowerMsg.includes('hire')) return 'contact';
+  if (lowerMsg.includes('price') || lowerMsg.includes('cost')) return 'price';
+  return 'general';
+}
 
+// Get welcome message
+export function getWelcomeMessage(userName) {
+  return `👋 Hello ${userName}! Welcome to Salman Dev's official bot. How can I help you today?`;
+}
+
+// Calculate typing delay based on message length
+export function calculateTypingDelay(length) {
+  const base = 1000;
+  const extra = Math.min(length * 20, 3000);
+  return base + extra;
+}
+
+// Get random joke
+export function getRandomJoke() {
+  const jokes = [
+    "Why did the web developer walk out of a restaurant? Because of the table layout.",
+    "A SQL query walks into a bar, walks up to two tables, and asks, 'Can I join you?'",
+    "How many programmers does it take to change a light bulb? None, that's a hardware problem.",
+    "Why do programmers always mix up Halloween and Christmas? Because Oct 31 == Dec 25.",
+    "There are only 10 kinds of people in this world: those who know binary and those who don't."
+  ];
+  return jokes[Math.floor(Math.random() * jokes.length)];
+}
+
+// Get quote of the day
 export function getQuoteOfTheDay() {
-  const today = new Date();
-  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
-  return QUOTES[dayOfYear % QUOTES.length];
+  const quotes = [
+    "The only way to do great work is to love what you do. - Steve Jobs",
+    "Innovation distinguishes between a leader and a follower. - Steve Jobs",
+    "Your time is limited, so don't waste it living someone else's life. - Steve Jobs",
+    "Stay hungry, stay foolish. - Steve Jobs",
+    "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt"
+  ];
+  return quotes[Math.floor(Math.random() * quotes.length)];
 }
 
-// 3. POLL CREATION
-export async function createPoll(ctx, question, options) {
-  try {
-    await ctx.telegram.sendPoll(ctx.chat.id, question, options, {
-      is_anonymous: true,
-      allows_multiple_answers: false,
-    });
-    return true;
-  } catch (error) {
-    return false;
+// Analyze sentiment (Simple)
+export function analyzeSentiment(message) {
+  const lowerMsg = message.toLowerCase();
+  const positive = ['good', 'great', 'awesome', 'thanks', 'thank', 'nice', 'happy', 'love'];
+  const negative = ['bad', 'worst', 'hate', 'problem', 'error', 'broken', 'sad', 'angry'];
+  
+  for (const word of positive) {
+    if (lowerMsg.includes(word)) return 'positive';
+  }
+  for (const word of negative) {
+    if (lowerMsg.includes(word)) return 'negative';
+  }
+  return 'neutral';
+}
+
+// Get time-based greeting
+export function getTimeBasedGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 18) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
+// Get quick replies
+export function getQuickReplies(intent) {
+  switch (intent) {
+    case 'product':
+      return ['View Products', 'Pricing', 'Demo'];
+    case 'contact':
+      return ['Telegram', 'Email', 'Portfolio'];
+    default:
+      return ['Help', 'Products', 'Contact'];
   }
 }
 
-// 4. REMINDER SYSTEM
-export function parseReminderTime(timeStr) {
-  const lower = timeStr.toLowerCase();
-  const now = new Date();
-  
-  if (lower.includes('tomorrow')) {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow;
-  }
-  
-  const match = timeStr.match(/(\d+)\s*(minutes?|hours?|days?)/i);
-  if (match) {
-    const amount = parseInt(match[1]);
-    const unit = match[2].toLowerCase();
-    const future = new Date(now);
-    
-    if (unit.includes('minute')) future.setMinutes(future.getMinutes() + amount);
-    if (unit.includes('hour')) future.setHours(future.getHours() + amount);
-    if (unit.includes('day')) future.setDate(future.getDate() + amount);
-    
-    return future;
-  }
-  
-  return null;
-}
-
-// 5. SPAM FILTER IMPROVED
-export function isSpamMessage(message, previousMessages = []) {
-  if (message.length < 3) return true;
-  
-  // Check for repeated characters
-  if (/(.)\1{9,}/.test(message)) return true;
-  
-  // Check for all caps
-  if (message === message.toUpperCase() && message.length > 5) return true;
-  
-  // Check for repeated messages
-  const recent = previousMessages.slice(-5);
-  if (recent.filter(m => m === message).length >= 2) return true;
-  
+// Spam detection (Simple)
+export function isSpamMessage(message) {
+  if (message.length > 500) return true;
+  if (message.includes('http') && message.includes('bit.ly')) return true;
   return false;
 }
 
-// 6. PROFANITY FILTER
-const BLOCKED_WORDS = ['badword1', 'badword2']; // Add actual words as needed
-
+// Filter profanity (Simple)
 export function filterProfanity(message) {
+  const badWords = ['badword1', 'badword2']; // Add real ones if needed
   let filtered = message;
-  for (const word of BLOCKED_WORDS) {
+  for (const word of badWords) {
     const regex = new RegExp(word, 'gi');
-    filtered = filtered.replace(regex, '*'.repeat(word.length));
+    filtered = filtered.replace(regex, '****');
   }
   return filtered;
 }
 
-// 7. KEYWORD EXTRACTION
+// Extract keywords
 export function extractKeywords(message) {
-  const words = message.toLowerCase().split(/\s+/);
-  const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'is', 'are'];
-  
-  return words.filter(word => 
-    word.length > 3 && 
-    !stopWords.includes(word) &&
-    !/^\d+$/.test(word)
-  );
+  return message.toLowerCase().split(' ').filter(word => word.length > 4);
 }
 
-// 8. TIME-BASED GREETING
-export function getTimeBasedGreeting(language = 'english') {
-  const hour = new Date().getHours();
-  
-  const greetings = {
-    english: {
-      morning: '🌅 Good morning! How can I help you today?',
-      afternoon: '☀️ Good afternoon! What can I do for you?',
-      evening: '🌆 Good evening! Need any assistance?',
-      night: '🌙 Good night! Still awake? How can I help?'
-    },
-    bangla: {
-      morning: '🌅 Shubho Shokaal! Aaj ki korte pari?',
-      afternoon: '☀️ Shubho Dopohor! Kono help lagbe?',
-      evening: '🌆 Shubho Shondhya! Kemon acho?',
-      night: '🌙 Shubho Raat! Ekono jagey acho? Ki lagbe?'
-    },
-    hindi: {
-      morning: '🌅 Subah ho! Main aapki kya madad kar sakta hoon?',
-      afternoon: '☀️ Shubh Dopahar! Kya chahiye?',
-      evening: '🌆 Shubh Shaam! Kaise ho?',
-      night: '🌙 Shubh Raat! Abhi jaga ho? Kya chahiye?'
-    }
-  };
-  
-  let timeOfDay = 'morning';
-  if (hour >= 12 && hour < 17) timeOfDay = 'afternoon';
-  if (hour >= 17 && hour < 21) timeOfDay = 'evening';
-  if (hour >= 21 || hour < 5) timeOfDay = 'night';
-  
-  return greetings[language]?.[timeOfDay] || greetings.english[timeOfDay];
+// Log activity
+export function logActivity(userId, action) {
+  logger.info(`User ${userId} performed action: ${action}`);
 }
 
-// 9. QUICK REPLY SUGGESTIONS
-export function getQuickReplies(intent) {
-  const replies = {
-    products: ['Tell me more', 'Show demo', 'How much?', 'Contact seller'],
-    help: ['How to use?', 'Commands', 'Features', 'Support'],
-    music: ['Play another', 'Stop', 'Playlist', 'Recommendations'],
-    weather: ['Tomorrow weather', 'Other city', 'Forecast', 'Alerts'],
-    general: ['Help', 'Products', 'Contact', 'About']
-  };
-  
-  return replies[intent] || replies.general;
-}
-
-// 10. ACTIVITY LOGGER
-export function logActivity(userId, action, details = {}) {
-  return {
-    userId,
-    action,
-    details,
-    timestamp: new Date(),
-    ip: details.ip || 'unknown'
-  };
-}
-
-// =============================================
-// GROUP MANAGEMENT HELPERS
-// =============================================
-export async function kickUser(ctx, userId) {
+// Group management functions
+export async function kickUser(ctx, target) {
   try {
+    let userId;
+    if (target.startsWith('@')) {
+      // Need to find ID from username - complex in Telegraf without DB
+      return false;
+    } else {
+      userId = parseInt(target);
+    }
     await ctx.telegram.kickChatMember(ctx.chat.id, userId);
     return true;
-  } catch (error) {
+  } catch (err) {
+    logger.error('Kick failed:', err);
     return false;
   }
 }
 
-export async function banUser(ctx, userId) {
+export async function banUser(ctx, target) {
   try {
-    await ctx.telegram.kickChatMember(ctx.chat.id, userId, { until_date: 0 });
+    let userId;
+    if (target.startsWith('@')) return false;
+    else userId = parseInt(target);
+    await ctx.telegram.kickChatMember(ctx.chat.id, userId);
     return true;
-  } catch (error) {
+  } catch (err) {
     return false;
   }
 }
 
-export async function unbanUser(ctx, userId) {
+export async function unbanUser(ctx, target) {
   try {
+    let userId;
+    if (target.startsWith('@')) return false;
+    else userId = parseInt(target);
     await ctx.telegram.unbanChatMember(ctx.chat.id, userId);
     return true;
-  } catch (error) {
+  } catch (err) {
     return false;
   }
 }
 
-export async function restrictUser(ctx, userId, permissions) {
+export async function promoteModerator(ctx, target) {
   try {
-    await ctx.telegram.restrictChatMember(ctx.chat.id, userId, permissions);
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-export async function promoteModerator(ctx, userId) {
-  try {
+    let userId;
+    if (target.startsWith('@')) return false;
+    else userId = parseInt(target);
     await ctx.telegram.promoteChatMember(ctx.chat.id, userId, {
+      can_change_info: false,
       can_delete_messages: true,
+      can_invite_users: true,
       can_restrict_members: true,
-      can_manage_topics: true,
+      can_pin_messages: true,
+      can_promote_members: false
     });
     return true;
-  } catch (error) {
+  } catch (err) {
     return false;
   }
-}
-
-// =============================================
-// JOKES
-// =============================================
-const JOKES = [
-  "A programmer's wife tells him: 'Go to the store and buy a loaf of bread. If they have eggs, buy a dozen.' He never came back because they had eggs! 😂",
-  "Why do Java developers wear glasses? Because they don't C#! 😄",
-  "How many programmers does it take to change a light bulb? None, that's a hardware problem! 💻",
-  "Why did the developer go broke? Because he lost his cache! 😂",
-  "A SQL query walks into a bar, walks up to two tables and asks... 'Can I join you?' 🍺",
-  "Why do programmers prefer dark mode? Because light attracts bugs! 🐛",
-  "How many programmers does it take to change a light bulb? None, they just update the darkness() function! 😄",
-  "Why did the developer go to jail? He had too many unresolved issues! ⚖️",
-];
-
-export function getRandomJoke() {
-  return JOKES[Math.floor(Math.random() * JOKES.length)];
-}
-
-// =============================================
-// SMART CONVERSATION INTENT DETECTOR
-// =============================================
-export function detectIntent(message) {
-  const lower = message.toLowerCase().trim();
-  
-  // Music request
-  if (detectMusicRequest(message)) return 'music';
-  
-  // Weather request
-  if (detectWeatherRequest(message)) return 'weather';
-  
-
-  
-  // Image generation
-  if (detectImageRequest(message)) return 'image';
-  
-  // Joke request
-  if (/joke|funny|laugh|haha|lol/.test(lower)) return 'joke';
-  
-  // Quote request
-  if (/quote|inspiration|motivat|wisdom/.test(lower)) return 'quote';
-  
-  // Contact/portfolio request
-  if (/contact|portfolio|link|github|whatsapp|email|salman dev|reach|connect/.test(lower)) return 'contact';
-  
-  // Product/service request
-  if (/product|service|price|cost|demo|buy|order|website|app|bot|build/.test(lower)) return 'products';
-  
-  // FAQ / help
-  if (/faq|help|how to|what is|guide/.test(lower)) return 'faq';
-  
-  // Profile request
-  if (/profile|my info|my profile|stat/.test(lower)) return 'profile';
-  
-  // Feedback
-  if (/feedback|rating|rate|review/.test(lower)) return 'feedback';
-  
-  // Greeting
-  if (/^(hi|hello|hey|hola|salam|assalamu|namaskar|hy|hii|yo|sup)/.test(lower)) return 'greeting';
-  
-  // General question (has ?)
-  if (message.includes('?')) return 'question';
-  
-  return 'general';
-}
-
-// =============================================
-// WELCOME MESSAGE GENERATOR
-// =============================================
-export function getWelcomeMessage(firstName, language = 'english') {
-  const messages = {
-    english: `👋 Welcome *${firstName}* to the group! I'm Salman Dev's AI assistant. Feel free to ask anything! 😊`,
-    bangla: `👋 ${firstName} ke group e swagotom! Ami Salman Dev er AI assistant. Kono kichu dorkar hole bolun! 😊`,
-    hindi: `👋 ${firstName} ka group mein swagat hai! Main Salman Dev ka AI assistant hoon. Kuch bhi poocho! 😊`
-  };
-  return messages[language] || messages.english;
-}
-
-// =============================================
-// TYPING DELAY CALCULATOR
-// =============================================
-export function calculateTypingDelay(responseLength) {
-  const baseDelay = 800;
-  const charDelay = Math.min(responseLength * 25, 3000);
-  return baseDelay + charDelay;
 }
