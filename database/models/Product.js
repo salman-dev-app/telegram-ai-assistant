@@ -34,7 +34,7 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: 'General'
   },
-  thumbnailUrl: {
+  thumbnail: { // FIXED: was thumbnailUrl in model, thumbnail in some utils
     type: String,
     default: null
   },

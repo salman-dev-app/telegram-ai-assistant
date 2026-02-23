@@ -7,7 +7,7 @@ import { TemplateController } from './controllers/templateController.js';
 import { DashboardManager } from './utils/dashboardManager.js';
 import { ProductBrowser } from './utils/productBrowser.js';
 import { logger } from './utils/logger.js';
-import { connectDB } from './database/connection.js';
+import { connectDatabase } from './database/connection.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.js';
 import { Product } from './database/models/Product.js';
 import { Template } from './database/models/Template.js';
@@ -51,7 +51,7 @@ async function startBot() {
 
     logger.info('Initializing Telegraf bot...');
     logger.info('Connecting to MongoDB...');
-    await connectDB();
+    await connectDatabase();
     logger.info('Database connection phase completed.');
 
     // ===== REGISTER ALL HANDLERS BEFORE LAUNCH =====
@@ -274,12 +274,13 @@ async function startBot() {
 
     bot.action(/^dash_cat_(.+)$/, async (ctx) => {
       const category = ctx.match[1];
-      await DashboardManager.renderCategoryTemplates(ctx, category);
+      await DashboardManager.renderCategoryPanel(ctx, category);
     });
     bot.action(/^dash_tmpl_nav_(.+)_(\d+)$/, async (ctx) => {
       const category = ctx.match[1];
       const page = parseInt(ctx.match[2]);
-      await DashboardManager.renderCategoryTemplates(ctx, category, page);
+      const templates = await Template.getByCategory(category);
+      await DashboardManager.renderSingleTemplatePanel(ctx, templates, page, category);
     });
     bot.action(/^dash_tmpl_info_(.+)$/, async (ctx) => {
       const templateId = ctx.match[1];

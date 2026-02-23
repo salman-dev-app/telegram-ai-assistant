@@ -24,7 +24,7 @@ const brandMemorySchema = new mongoose.Schema({
     type: String,
     default: 'Available for projects and consultations.'
   },
-  customNotes: {
+  notes: { // FIXED: was customNotes in some places, notes in others
     type: String,
     default: ''
   },
@@ -76,7 +76,7 @@ ${servicesText}
 ${this.offers ? `Current Offers: ${this.offers}` : ''}
 Availability: ${this.availability}
 Status: ${this.status}
-${this.customNotes ? `Additional Notes: ${this.customNotes}` : ''}
+${this.notes ? `Additional Notes: ${this.notes}` : ''}
 `.trim();
 };
 
