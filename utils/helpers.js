@@ -1,3 +1,5 @@
+import { logger } from './logger.js';
+
 // UI BUTTONS - English Only (No Bangla Script)
 // Three languages: English, Bangla, Hindi
 // =============================================
@@ -244,12 +246,21 @@ export function logActivity(userId, action) {
   logger.info(`User ${userId} performed action: ${action}`);
 }
 
+// Create poll (Placeholder)
+export async function createPoll(ctx, question, options) {
+  try {
+    return await ctx.replyWithPoll(question, options);
+  } catch (err) {
+    logger.error('Poll creation failed:', err);
+    return null;
+  }
+}
+
 // Group management functions
 export async function kickUser(ctx, target) {
   try {
     let userId;
-    if (target.startsWith('@')) {
-      // Need to find ID from username - complex in Telegraf without DB
+    if (typeof target === 'string' && target.startsWith('@')) {
       return false;
     } else {
       userId = parseInt(target);
@@ -265,7 +276,7 @@ export async function kickUser(ctx, target) {
 export async function banUser(ctx, target) {
   try {
     let userId;
-    if (target.startsWith('@')) return false;
+    if (typeof target === 'string' && target.startsWith('@')) return false;
     else userId = parseInt(target);
     await ctx.telegram.kickChatMember(ctx.chat.id, userId);
     return true;
@@ -277,9 +288,21 @@ export async function banUser(ctx, target) {
 export async function unbanUser(ctx, target) {
   try {
     let userId;
-    if (target.startsWith('@')) return false;
+    if (typeof target === 'string' && target.startsWith('@')) return false;
     else userId = parseInt(target);
     await ctx.telegram.unbanChatMember(ctx.chat.id, userId);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+export async function restrictUser(ctx, target, permissions) {
+  try {
+    let userId;
+    if (typeof target === 'string' && target.startsWith('@')) return false;
+    else userId = parseInt(target);
+    await ctx.telegram.restrictChatMember(ctx.chat.id, userId, permissions);
     return true;
   } catch (err) {
     return false;
@@ -289,7 +312,7 @@ export async function unbanUser(ctx, target) {
 export async function promoteModerator(ctx, target) {
   try {
     let userId;
-    if (target.startsWith('@')) return false;
+    if (typeof target === 'string' && target.startsWith('@')) return false;
     else userId = parseInt(target);
     await ctx.telegram.promoteChatMember(ctx.chat.id, userId, {
       can_change_info: false,

@@ -337,27 +337,24 @@ Choose an option:
 
       const dashboardText = `
 ╔══════════════════════════════════════╗
-║  👤 YOUR PROFILE 👤                  ║
+║  👤 USER PROFILE 👤                  ║
 ╚══════════════════════════════════════╝
 
-👤 Name: ${user?.firstName || 'Unknown'} ${user?.lastName || ''}
+👤 Name: ${user?.firstName || 'Unknown'}
 🆔 ID: ${user?.telegramId}
 🌐 Language: ${user?.language || 'English'}
-
-📊 Statistics:
-💬 Messages: ${user?.messageCount || 0}
-🎵 Songs: ${user?.songsRequested || 0}
 📅 Joined: ${joinedDate}
-
-${user?.feedbackRating ? `⭐ Rating: ${user.feedbackRating}/5` : '⭐ No rating yet'}
+💬 Total Messages: ${user?.messageCount || 0}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+What would you like to do?
       `.trim();
 
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback('⭐ Rate Bot', 'dash_rate'),
-          Markup.button.callback('📊 Stats', 'dash_stats')
+          Markup.button.callback('⭐ Rate Service', 'dash_rate'),
+          Markup.button.callback('📊 Detailed Stats', 'dash_stats')
         ],
         [Markup.button.callback('⬅️ Back', 'dash_main')]
       ]);
@@ -372,79 +369,25 @@ ${user?.feedbackRating ? `⭐ Rating: ${user.feedbackRating}/5` : '⭐ No rating
     }
   }
 
-  // ===== GROUP PANEL =====
-  static async renderGroupPanel(ctx) {
-    try {
-      const groupSettings = await GroupSettings.findOne({ groupId: ctx.chat.id });
-
-      if (!groupSettings) {
-        const dashboardText = `
-╔══════════════════════════════════════╗
-║  📊 GROUP MANAGEMENT 📊              ║
-╚══════════════════════════════════════╝
-
-❌ Group not initialized yet.
-        `.trim();
-
-        const keyboard = Markup.inlineKeyboard([
-          [Markup.button.callback('⬅️ Back', 'dash_main')]
-        ]);
-
-        await ctx.editMessageText(dashboardText, {
-          parse_mode: 'Markdown',
-          ...keyboard
-        });
-        return ctx.answerCbQuery();
-      }
-
-      const dashboardText = `
-╔══════════════════════════════════════╗
-║  📊 GROUP MANAGEMENT 📊              ║
-╚══════════════════════════════════════╝
-
-👥 Members: ${groupSettings.stats.totalMembers}
-💬 Messages: ${groupSettings.stats.messagesCount}
-🚫 Spam Blocked: ${groupSettings.stats.spamBlocked}
-👢 Users Kicked: ${groupSettings.stats.usersKicked}
-
-🛡️ Auto-Moderation: ${groupSettings.autoModeration.enabled ? '✅' : '❌'}
-🚫 Anti-Spam: ${groupSettings.autoModeration.antiSpam ? '✅' : '❌'}
-🔤 Anti-Caps: ${groupSettings.autoModeration.antiCaps ? '✅' : '❌'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      `.trim();
-
-      const keyboard = Markup.inlineKeyboard([
-        [
-          Markup.button.callback('📋 Rules', 'dash_rules'),
-          Markup.button.callback('⚙️ Settings', 'dash_group_settings')
-        ],
-        [
-          Markup.button.callback('🛡️ Moderation', 'dash_moderation'),
-          Markup.button.callback('📊 Stats', 'dash_group_stats')
-        ],
-        [Markup.button.callback('⬅️ Back', 'dash_main')]
-      ]);
-
-      await ctx.editMessageText(dashboardText, {
-        parse_mode: 'Markdown',
-        ...keyboard
-      });
-      await ctx.answerCbQuery();
-    } catch (error) {
-      console.error('Error in renderGroupPanel:', error);
-    }
-  }
-
   // ===== ADMIN PANEL =====
   static async renderAdminPanel(ctx) {
     try {
+      const user = await User.findOne({ telegramId: ctx.from.id });
+      
       const dashboardText = `
 ╔══════════════════════════════════════╗
-║  🛠 ADMIN PANEL 🛠                    ║
+║  🛠 ADMIN CONTROL CENTER 🛠          ║
 ╚══════════════════════════════════════╝
 
-Choose admin function:
+Welcome back, Admin ${user?.firstName || ''}!
+
+📊 System Status: Healthy
+👥 Active Users: ${await User.countDocuments()}
+📦 Total Products: ${await Product.countDocuments()}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Select admin function:
       `.trim();
 
       const keyboard = Markup.inlineKeyboard([

@@ -6,37 +6,19 @@ import { CommandStats } from '../database/models/CommandStats.js';
 import { GroqAI } from '../ai/groq.js';
 import { logger } from '../utils/logger.js';
 import {
-  UIButtons,
   detectMusicRequest,
   detectWeatherRequest,
   getWeather,
   detectImageRequest,
   generateImage,
-  detectIntent,
-  getWelcomeMessage,
   calculateTypingDelay,
   getRandomJoke,
-  createPoll,
-  kickUser,
-  banUser,
-  unbanUser,
-  restrictUser,
-  promoteModerator,
-  getQuoteOfTheDay,
-  analyzeSentiment,
-  getTimeBasedGreeting,
-  getQuickReplies,
-  isSpamMessage,
-  filterProfanity,
-  extractKeywords,
-  logActivity
+  getQuoteOfTheDay
 } from '../utils/helpers.js';
-import { TemplateController } from './templateController.js';
-import { GroupController } from './groupController.js';
 import { DashboardManager } from '../utils/dashboardManager.js';
-import { AIResponseFormatter } from '../utils/aiResponseFormatter.js';
 import { StrictResponseFormatter } from '../utils/strictResponseFormatter.js';
 import { ProductBrowser } from '../utils/productBrowser.js';
+import { Markup } from 'telegraf';
 
 
 const ai = new GroqAI();
@@ -221,9 +203,6 @@ export class MessageController {
 
       // ===== STRICT FORMATTER: ENSURE ALL RESPONSES HAVE BUTTONS =====
       const formatted = StrictResponseFormatter.formatChatResponse(aiResponse);
-      
-      // Escape special markdown characters to prevent parsing errors
-      const escapedText = formatted.text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
       
       await ctx.reply(formatted.text, {
         parse_mode: 'Markdown',
