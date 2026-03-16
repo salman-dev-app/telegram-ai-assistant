@@ -1,88 +1,119 @@
-# 👑 Salman Dev - Elite AI Assistant (v5.3)
+<div align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:FF6B6B,100:4ECDC4&height=200&text=telegram-ai-assistant&fontSize=42&fontColor=fff&animation=fadeIn&fontAlignY=40&desc=Production-ready%20Telegram%20AI%20Assistant%20with%20multi-model%20AI%20&%20MongoDB&descAlignY=60&descSize=14"/>
+</div>
 
-_The ultimate, production-ready Telegram AI Assistant for the "Salman Dev" brand. Now with Groq AI exclusively, admin-only product removal, and fixed Koyeb deployment._
+<p align="center">
+  <a href="https://github.com/salman-dev-app/telegram-ai-assistant">
+    <img src="https://readme-typing-svg.demolab.com?font=Tagesschrift&size=22&duration=2000&pause=800&color=F7F7F7&background=FF001400&center=true&vCenter=true&multiline=true&width=500&height=70&lines=telegram-ai-assistant;Production-ready+Telegram+AI+Assistant+with+multi-" alt="Typing SVG" />
+  </a>
+</p>
 
-[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/salman-dev-app/telegram-ai-assistant&branch=main&name=telegram-ai-assistant)
+<p align="center">
+  <img src="https://img.shields.io/badge/Language-JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=white" />
+  <img src="https://img.shields.io/github/last-commit/salman-dev-app/telegram-ai-assistant?style=for-the-badge&color=00D9FF&label=LAST%20UPDATED&logo=github&logoColor=white" />
+  <img src="https://img.shields.io/github/stars/salman-dev-app/telegram-ai-assistant?style=for-the-badge&color=FF6B6B&logo=github&logoColor=white" />
+</p>
 
----
+<p align="center">
+  <a href="https://github.com/salman-dev-app/telegram-ai-assistant">
+    <img src="https://img.shields.io/badge/GitHub-View_Repository-FF6B6B?style=for-the-badge&logo=github&logoColor=white" />
+  </a>
 
-## 💎 Elite Features (v5.3)
-
-### 🚀 Fixed Koyeb Deployment
-- **Lockfile Included**: Added `package-lock.json` to ensure seamless builds on Koyeb.
-- **One-Click Ready**: Use the button above to deploy instantly.
-
-### 🤖 Exclusive Groq AI
-- **Llama 3.3 Powered**: Now uses Groq's high-speed Llama 3.3 70B model exclusively for the fastest and most human-like responses.
-- **Optimized Context**: Fixed AI prompt formatting for elite brand representation.
-
-### 🗑️ Admin-Only Product Removal
-- **Full Control**: Admin can now remove products using the `/remove_product [Product ID]` command.
-- **Safety**: Only the authorized admin (defined by `ADMIN_TELEGRAM_ID`) can perform this action.
-
-### 🛡️ Robust Startup & Uptime
-- **Force Kill Logic**: Implemented a robust startup sequence that force-clears existing connections and waits for old instances to shut down.
-- **Anti-Sleep Mechanism**: Built-in self-pinging to keep the bot alive.
-- **Admin Restart**: A new `/restart` command and button allow the admin to reboot the bot instance directly from Telegram.
-
-### 🚀 Banglish Language Support
-- **Strict Banglish Rules**: The bot communicates exclusively in **BANGLISH** (Bengali language written using English letters).
-- **No Bengali Script**: Prevents Unicode errors and ensures a consistent conversational tone.
+</p>
 
 ---
 
-## 🛠️ Tech Stack
-
-- **Runtime**: Node.js (Latest LTS)
-- **Framework**: Telegraf.js
-- **AI Engine**: Groq (Llama 3.3 70B)
-- **Database**: MongoDB (Mongoose)
-- **Server**: Built-in HTTP for health checks and uptime.
+<div align="center">
+  <h3>
+    <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Glowing%20Star.png" alt="Star" width="25" height="25" style="vertical-align: middle;" /> 
+    Production-ready Telegram AI Assistant with multi-model AI & MongoDB
+  </h3>
+</div>
 
 ---
 
-## ⚙️ Setup and Installation
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Clipboard.png" alt="Clipboard" width="30" height="30" style="vertical-align: middle;" /> About This Project
 
-### 1. Get a Groq API Key
-1. Go to [GroqCloud](https://console.groq.com/).
-2. Create a free API Key.
+<p>
+<img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png" width="18" height="18" style="vertical-align: middle;" /> <strong>Repository:</strong> <a href="https://github.com/salman-dev-app/telegram-ai-assistant">telegram-ai-assistant</a><br/>
+<img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png" width="18" height="18" style="vertical-align: middle;" /> <strong>Author:</strong> <a href="https://github.com/salman-dev-app">Md Salman Biswas</a><br/>
+<img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png" width="18" height="18" style="vertical-align: middle;" /> <strong>Primary Language:</strong> JavaScript<br/>
 
-### 2. Clone & Install
+<img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png" width="18" height="18" style="vertical-align: middle;" /> <strong>License:</strong> MIT
+</p>
+
+---
+
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rocket.png" alt="Rocket" width="30" height="30" style="vertical-align: middle;" /> Features
+
+<p><img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png" width="18" height="18" style="vertical-align: middle;" /> <strong>Clean Architecture</strong> — Built following SOLID principles and DRY methodology</p>
+<p><img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png" width="18" height="18" style="vertical-align: middle;" /> <strong>Scalable Design</strong> — Engineered for performance and extensibility</p>
+<p><img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png" width="18" height="18" style="vertical-align: middle;" /> <strong>Developer Friendly</strong> — Well-structured codebase with clear documentation</p>
+<p><img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Symbols/Check%20Mark%20Button.png" width="18" height="18" style="vertical-align: middle;" /> <strong>Production Ready</strong> — Battle-tested and deployed in real environments</p>
+
+---
+
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Wrench.png" alt="Wrench" width="30" height="30" style="vertical-align: middle;" /> Tech Stack
+
+<div align="center">
+  <img src="https://skillicons.dev/icons?i=git,github,docker,vscode&theme=dark" />
+</div>
+
+---
+
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Scroll.png" alt="Scroll" width="30" height="30" style="vertical-align: middle;" /> Getting Started
+
 ```bash
+# Clone the repository
 git clone https://github.com/salman-dev-app/telegram-ai-assistant.git
+
+# Navigate to the project
 cd telegram-ai-assistant
-npm install
-```
 
-### 3. Configure Environment
-Create a `.env` file:
-```env
-TELEGRAM_BOT_TOKEN="your_telegram_token"
-ADMIN_TELEGRAM_ID="your_id"
-OPENROUTER_API_KEY="your_groq_api_key" # Reusing this variable for Groq key
-MONGODB_URI="your_mongodb_uri"
-PORT=3000
-RENDER_EXTERNAL_URL="https://your-app-name.onrender.com" # Optional for self-ping
-```
-
-### 4. Run
-```bash
-npm start
+# Install dependencies (if applicable)
+# Follow language-specific setup instructions below
 ```
 
 ---
 
-## 🤖 Admin Command Center
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Globe%20Showing%20Americas.png" alt="Globe" width="30" height="30" style="vertical-align: middle;" /> Connect With The Author
 
-- `/start` - 👑 Launch the elite dashboard
-- `/restart` - 🔄 System Reboot (Admin Only)
-- `/status` - 🚦 Presence control
-- `/update_memory` - 📝 Update brand intel
-- `/add_product` - 🛍️ Add new asset
-- `/remove_product` - 🗑️ Remove asset (Admin Only)
-- `/view_memory` - 📊 System stats
-- `/list_products` - 📜 Asset catalog
+<p align="center">
+  <a href="mailto:mdsalmanhelp@gmail.com">
+    <img src="https://img.shields.io/badge/Hire_Me-Send_Email-FF6B6B?style=for-the-badge&logo=minutemailer&logoColor=white" />
+  </a>
+  <a href="https://wa.me/8801840933137">
+    <img src="https://img.shields.io/badge/WhatsApp-Direct_Chat-4ECDC4?style=for-the-badge&logo=whatsapp&logoColor=white" />
+  </a>
+  <a href="https://github.com/salman-dev-app">
+    <img src="https://img.shields.io/badge/GitHub-Follow_Me-00D9FF?style=for-the-badge&logo=github&logoColor=white" />
+  </a>
+</p>
 
 ---
 
-_Built with ❤️ for Salman Dev_
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Scroll.png" alt="License" width="30" height="30" style="vertical-align: middle;" /> License
+
+<div align="center">
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge&logo=open-source-initiative&logoColor=white" />
+  </a>
+</div>
+
+<p align="center">
+  This project is licensed under the MIT License — feel free to use and contribute.
+</p>
+
+---
+
+<footer align="center">
+  <p>© 2024-2026 <a href="https://github.com/salman-dev-app">Md Salman Biswas</a> · All rights reserved</p>
+  <p>
+    <a href="https://github.com/salman-dev-app">
+      <img src="https://img.shields.io/badge/Profile_Status-Active-4ECDC4?style=flat" alt="Status" />
+    </a>
+  </p>
+  <p>Engineered with ❤️ by <a href="https://github.com/salman-dev-app">Md Salman Biswas</a></p>
+</footer>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:FF6B6B,100:4ECDC4&height=120&section=footer"/>
